@@ -5,6 +5,7 @@ import { Badge } from '../ui/badge';
 import { Wallet, Copy, Check, LogOut, ShieldCheck } from 'lucide-react';
 import { NimiqWalletAccount, NimiqWalletService } from '../../lib/nimiq/NimiqWalletService';
 import { UserProgress } from '../../lib/persistence/StorageService';
+import { NimiqIdenticon } from '../ui/NimiqIdenticon';
 
 interface WalletModalProps {
   open: boolean;
@@ -73,13 +74,13 @@ export const WalletModal: React.FC<WalletModalProps> = ({
               </div>
             </div>
 
-            {/* Address Details */}
+            {/* Address Details with Nimiq Identicon */}
             <div className="bg-muted/40 p-3.5 rounded-xl border border-border/40">
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] text-muted-foreground font-medium">Your Nimiq Address</span>
                 <button
                   onClick={handleCopy}
-                  className="flex items-center space-x-1 text-[11px] text-[#FFCA1A] hover:underline"
+                  className="flex items-center space-x-1 text-[11px] text-[#FFCA1A] hover:underline cursor-pointer"
                 >
                   {copied ? (
                     <>
@@ -94,9 +95,18 @@ export const WalletModal: React.FC<WalletModalProps> = ({
                   )}
                 </button>
               </div>
-              <p className="font-mono text-xs text-foreground break-all bg-background/80 p-2.5 rounded-lg border border-border/50">
-                {wallet.formattedAddress}
-              </p>
+              <div className="flex items-center space-x-3 bg-background/80 p-2.5 rounded-lg border border-border/50">
+                <NimiqIdenticon address={wallet.address} size={36} className="shrink-0" />
+                <p className="font-mono text-xs text-foreground break-all">
+                  {wallet.formattedAddress}
+                </p>
+              </div>
+              {wallet.isMiniApp && (
+                <div className="mt-2 flex items-center space-x-1.5 text-[11px] text-green-500 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span>Connected via Nimiq Pay Mini App</span>
+                </div>
+              )}
             </div>
 
             <div className="p-3 rounded-xl bg-muted/40 border border-border/40 flex items-start space-x-2 text-xs text-muted-foreground">
