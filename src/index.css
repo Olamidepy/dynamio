@@ -109,7 +109,18 @@ h1, h2, h3, .font-heading, .brand-font {
   animation: translationalLoop 42s linear infinite;
 }
 
-.animate-translational-loop:hover {
+.animate-translational-loop:hover,
+.animate-translational-loop:active {
   animation-play-state: paused;
 }
+
+/* Hide scrollbar for smooth mobile/horizontal tickers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 
