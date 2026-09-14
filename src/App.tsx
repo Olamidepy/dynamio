@@ -11,6 +11,7 @@ import { LevelCompleteModal } from './components/Menus/LevelCompleteModal';
 import { GameOverModal } from './components/Menus/GameOverModal';
 import { LevelSelectModal } from './components/Menus/LevelSelectModal';
 import { DailyChallengeModal } from './components/Menus/DailyChallengeModal';
+import { ChallengeModal } from './components/Menus/ChallengeModal';
 import { WalletModal } from './components/Wallet/WalletModal';
 import { LeaderboardModal } from './components/Leaderboard/LeaderboardModal';
 import { SettingsModal } from './components/Settings/SettingsModal';
@@ -49,6 +50,8 @@ export const App: React.FC = () => {
     remainingBalls: LEVELS[0].totalBalls,
     totalBalls: LEVELS[0].totalBalls,
     levelName: LEVELS[0].name,
+    levelId: LEVELS[0].id,
+    targetScore: LEVELS[0].targetScore,
     currentBallColor: 'ruby',
     nextBallColor: 'sapphire',
     progressPercent: 0,
@@ -57,6 +60,7 @@ export const App: React.FC = () => {
   // Modal Dialogs
   const [showLevelSelect, setShowLevelSelect] = useState(false);
   const [showDailyModal, setShowDailyModal] = useState(false);
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -207,6 +211,7 @@ export const App: React.FC = () => {
           onPlayQuick={handlePlayQuick}
           onOpenLevelSelect={() => setShowLevelSelect(true)}
           onOpenDaily={() => setShowDailyModal(true)}
+          onOpenChallenge={() => setShowChallengeModal(true)}
           onOpenLeaderboard={() => setShowLeaderboardModal(true)}
           onOpenWallet={() => setShowWalletModal(true)}
           onOpenSettings={() => setShowSettingsModal(true)}
@@ -330,8 +335,10 @@ export const App: React.FC = () => {
         open={gameState === 'GAME_OVER'}
         telemetry={lastTelemetry}
         level={currentLevel}
+        wallet={wallet}
         onRetry={handleRestart}
         onHome={handleQuitToMenu}
+        onConnectWallet={() => setShowWalletModal(true)}
       />
 
       <LevelSelectModal
@@ -346,6 +353,14 @@ export const App: React.FC = () => {
         onOpenChange={setShowDailyModal}
         onPlayDaily={handlePlayDaily}
         progress={progress}
+      />
+
+      <ChallengeModal
+        open={showChallengeModal}
+        onOpenChange={setShowChallengeModal}
+        wallet={wallet}
+        onStartChallengeMatch={(lvl, _fee) => handleSelectLevel(lvl)}
+        onConnectWallet={() => setShowWalletModal(true)}
       />
 
       <WalletModal

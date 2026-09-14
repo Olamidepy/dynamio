@@ -6,7 +6,7 @@ export class Ball implements BallData {
   public id: string;
   public color: SphereColor;
   public pathDistance: number;
-  public radius: number = 0.55;
+  public radius: number = 0.72;
   public state: BallState = 'SPAWNING';
   public velocity: number = 0;
   public mesh: THREE.Mesh;
@@ -15,7 +15,7 @@ export class Ball implements BallData {
   public destroyProgress: number = 0;
 
   // Static shared geometry for optimal memory & draw performance
-  private static sharedGeometry = new THREE.SphereGeometry(0.55, 24, 20);
+  private static sharedGeometry = new THREE.SphereGeometry(0.72, 24, 20);
 
   constructor(id: string, color: SphereColor, initialDistance: number = 0) {
     this.id = id;

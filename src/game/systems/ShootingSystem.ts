@@ -25,7 +25,7 @@ export class ShootingSystem {
   public scene: THREE.Scene;
   public projectiles: Projectile[] = [];
   public speed: number = 36.0; // Fast and snappy!
-  private static projectileGeo = new THREE.SphereGeometry(0.55, 20, 16);
+  private static projectileGeo = new THREE.SphereGeometry(0.72, 20, 16);
   private pool: Projectile[] = [];
   private nextProjId: number = 1;
 
@@ -37,7 +37,7 @@ export class ShootingSystem {
     let proj: Projectile;
     const dirNorm = direction.clone().normalize();
     dirNorm.y = 0; // maintain horizontal height plane
-    origin.y = 0.58; // exact ball center plane
+    origin.y = 0.72; // exact ball center plane
 
     if (this.pool.length > 0) {
       proj = this.pool.pop()!;
@@ -60,7 +60,7 @@ export class ShootingSystem {
         color,
         position: origin.clone(),
         velocity: dirNorm.multiplyScalar(this.speed),
-        radius: 0.55,
+        radius: 0.72,
         mesh,
         alive: true,
       };
@@ -84,8 +84,8 @@ export class ShootingSystem {
       proj.mesh.position.copy(proj.position);
 
       // Check collision against all balls in the chain
-      // Collision radius = proj.radius + ball.radius = 0.55 + 0.55 = 1.10
-      const collisionThresholdSq = 1.21; // (1.1)^2
+      // Collision radius = proj.radius + ball.radius = 0.72 + 0.72 = 1.44
+      const collisionThresholdSq = 2.0736; // (1.44)^2
 
       for (let bIdx = 0; bIdx < ballChain.balls.length; bIdx++) {
         const chainBall = ballChain.balls[bIdx];

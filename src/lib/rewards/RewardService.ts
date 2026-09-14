@@ -51,20 +51,27 @@ export class RewardService {
   }
 
   /**
-   * Calculates eligible rewards based on player skill and level tier
+   * Calculates eligible rewards based on player Dyno Points and level tier.
+   * Maximum win by level: Level 1 -> 1 NIM, Level 2 -> 2 NIM ... Level 7 -> 7 NIM.
+   * On loss, Dyno Points still convert to partial NIM consolation.
    */
   public static calculateRewards(telemetry: GameTelemetry, level: LevelConfig): { nimReward: number; energyReward: number } {
-    // Multipliers
-    const accuracyMult = 0.8 + (telemetry.accuracy / 100) * 0.4; // 0.8x to 1.2x
-    const comboMult = 1.0 + Math.min(telemetry.highestCombo - 1, 6) * 0.15; // up to ~1.9x
-    const winBonus = telemetry.won ? 1.0 : 0.25; // 25% if lost, 100% if won
+    const maxLevelNim = Math.min(Math.max(level.id, 1), 7);
+    const targetScore = level.targetScore || 2500;
+    const scoreRatio = Math.min(Math.max(telemetry.score / targetScore, 0.05), 1.0);
 
-    const rawNim = level.baseRewardNim * accuracyMult * comboMult * winBonus;
-    const nimReward = Number(rawNim.toFixed(3));
+    let nimReward: number;
+    if (telemetry.won) {
+      // WIN: Converted Dyno points up to maxLevelNim
+      const rawNim = maxLevelNim * scoreRatio;
+      nimReward = Number(Math.min(maxLevelNim, rawNim).toFixed(2));
+    } else {
+      // LOSE: Partial conversion of Dyno points so player effort is always rewarded
+      const consolationNim = maxLevelNim * scoreRatio * 0.40;
+      nimReward = Number(Math.max(0.05, Math.min(maxLevelNim * 0.5, consolationNim)).toFixed(2));
+    }
 
-    const rawEnergy = level.baseRewardEnergy * accuracyMult * comboMult * winBonus;
-    const energyReward = Math.round(rawEnergy);
-
+    const energyReward = Math.round(telemetry.score * 0.1);
     return { nimReward, energyReward };
   }
 

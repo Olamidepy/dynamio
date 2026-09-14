@@ -19,6 +19,8 @@ export interface HUDUpdateData {
   remainingBalls: number;
   totalBalls: number;
   levelName: string;
+  levelId: number;
+  targetScore: number;
   currentBallColor: SphereColor;
   nextBallColor: SphereColor;
   progressPercent: number;
@@ -311,6 +313,8 @@ export class GameEngine {
       remainingBalls: remaining,
       totalBalls: this.currentLevel.totalBalls,
       levelName: this.currentLevel.name,
+      levelId: this.currentLevel.id,
+      targetScore: this.currentLevel.targetScore,
       currentBallColor: this.shooter.currentBallColor,
       nextBallColor: this.shooter.nextBallColor,
       progressPercent: Math.max(0, progress),

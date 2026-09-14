@@ -118,7 +118,7 @@ export const LevelCompleteModal: React.FC<LevelCompleteModalProps> = ({
         {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-2 bg-muted/40 p-3 rounded-xl border border-border/40 mb-4">
           <div className="flex flex-col">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground">Score</span>
+            <span className="text-[10px] uppercase font-bold text-muted-foreground">Dyno Points</span>
             <span className="font-heading font-bold text-lg text-foreground">
               {telemetry.score.toLocaleString()}
             </span>

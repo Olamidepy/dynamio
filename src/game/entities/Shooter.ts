@@ -77,18 +77,18 @@ export class Shooter {
     this.turretGroup.add(nozzleRight);
 
     // 3. Current Loaded Ball
-    const sphereGeo = new THREE.SphereGeometry(0.55, 24, 20);
+    const sphereGeo = new THREE.SphereGeometry(0.72, 24, 20);
     const currentMat = MaterialManager.getInstance().getSphereMaterial(this.currentBallColor);
     this.currentBallMesh = new THREE.Mesh(sphereGeo, currentMat);
-    this.currentBallMesh.position.set(0, 0.3, 0.2);
+    this.currentBallMesh.position.set(0, 0.38, 0.2);
     this.currentBallMesh.castShadow = true;
     this.turretGroup.add(this.currentBallMesh);
 
-    // 4. Next Ball (smaller preview resting behind turret)
-    const nextGeo = new THREE.SphereGeometry(0.38, 20, 16);
+    // 4. Next Ball (preview resting behind turret)
+    const nextGeo = new THREE.SphereGeometry(0.48, 20, 16);
     const nextMat = MaterialManager.getInstance().getSphereMaterial(this.nextBallColor);
     this.nextBallMesh = new THREE.Mesh(nextGeo, nextMat);
-    this.nextBallMesh.position.set(0, 0.2, -0.85);
+    this.nextBallMesh.position.set(0, 0.28, -0.95);
     this.nextBallMesh.castShadow = true;
     this.turretGroup.add(this.nextBallMesh);
 

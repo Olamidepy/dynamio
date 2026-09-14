@@ -128,6 +128,29 @@ export class NimiqWalletService {
     };
   }
 
+  /**
+   * Sends or escrows NIM for challenge entry
+   */
+  public async sendTransaction(recipient: string, nimAmount: number): Promise<{ success: boolean; txHash: string }> {
+    if (!this.account.isConnected) {
+      throw new Error('Wallet not connected');
+    }
+    if (this.account.balanceNim < nimAmount) {
+      throw new Error('Insufficient balance');
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    this.account.balanceNim = Number(Math.max(0, this.account.balanceNim - nimAmount).toFixed(4));
+    this.saveSession();
+
+    const txHash = '0x' + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    return {
+      success: true,
+      txHash,
+    };
+  }
+
   public formatAddress(raw: string): string {
     const clean = raw.replace(/\s+/g, '').toUpperCase();
     const parts: string[] = [];

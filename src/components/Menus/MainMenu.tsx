@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Wallet, Settings, Trophy, Layers, HelpCircle, Menu, X } from 'lucide-react';
+import { Wallet, Settings, Trophy, Layers, HelpCircle, Menu, X, Swords } from 'lucide-react';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { UserProgress } from '../../lib/persistence/StorageService';
 import { NimiqWalletAccount } from '../../lib/nimiq/NimiqWalletService';
 
@@ -8,6 +9,7 @@ interface MainMenuProps {
   onPlayQuick: () => void;
   onOpenLevelSelect: () => void;
   onOpenDaily: () => void;
+  onOpenChallenge: () => void;
   onOpenLeaderboard: () => void;
   onOpenWallet: () => void;
   onOpenSettings: () => void;
@@ -20,6 +22,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   onPlayQuick,
   onOpenLevelSelect,
   onOpenDaily,
+  onOpenChallenge,
   onOpenLeaderboard,
   onOpenWallet,
   onOpenSettings,
@@ -56,6 +59,14 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               className="transition-colors hover:text-foreground text-muted-foreground hover:text-[#FFCA1A] cursor-pointer"
             >
               Levels
+            </button>
+
+            <button
+              onClick={onOpenChallenge}
+              className="transition-colors hover:text-foreground text-muted-foreground hover:text-[#FFCA1A] cursor-pointer flex items-center gap-1.5"
+            >
+              <span>VS Challenges</span>
+              <Badge variant="outline" className="text-[9px] px-1 py-0 text-[#FFCA1A] border-[#FFCA1A]/30">HOT</Badge>
             </button>
 
             <button
@@ -130,6 +141,20 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
             <button
               onClick={() => {
+                onOpenChallenge();
+                setMobileMenuOpen(false);
+              }}
+              className="flex items-center justify-between w-full py-2 text-sm text-foreground hover:text-[#FFCA1A] border-b border-border/30"
+            >
+              <div className="flex items-center space-x-1.5">
+                <span>VS Challenges</span>
+                <Badge variant="outline" className="text-[9px] px-1 py-0 text-[#FFCA1A] border-[#FFCA1A]/30">HOT</Badge>
+              </div>
+              <Swords className="w-3.5 h-3.5 text-[#FFCA1A]" />
+            </button>
+
+            <button
+              onClick={() => {
                 onOpenLevelSelect();
                 setMobileMenuOpen(false);
               }}
@@ -192,12 +217,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         </p>
 
         {/* Action Buttons with ample spacing */}
-        <div className="flex w-full flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-10 sm:pt-14 md:pt-16 max-w-xs sm:max-w-md mx-auto">
+        <div className="flex w-full flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-10 sm:pt-14 md:pt-16 max-w-xs sm:max-w-xl mx-auto">
           <Button
             variant="default"
             size="lg"
             onClick={onPlayQuick}
-            className="w-full sm:w-44 font-bold shadow-lg h-11 sm:h-12 text-sm"
+            className="w-full sm:w-36 font-bold shadow-lg h-11 sm:h-12 text-sm"
           >
             Play
           </Button>
@@ -205,11 +230,21 @@ export const MainMenu: React.FC<MainMenuProps> = ({
           <Button
             variant="outline"
             size="lg"
+            onClick={onOpenChallenge}
+            className="w-full sm:w-auto border-[#FFCA1A]/60 text-xs font-semibold gap-2 h-11 sm:h-12 px-4 text-[#FFCA1A] hover:bg-[#FFCA1A]/10 shadow-md shadow-[#FFCA1A]/10"
+          >
+            <Swords className="w-4 h-4 text-[#FFCA1A]" />
+            <span>VS Challenges (20N Pool)</span>
+          </Button>
+
+          <Button
+            variant="outline"
+            size="lg"
             onClick={onOpenLevelSelect}
-            className="w-full sm:w-auto border-border/60 text-xs font-semibold gap-2 h-11 sm:h-12 px-5"
+            className="w-full sm:w-auto border-border/60 text-xs font-semibold gap-2 h-11 sm:h-12 px-4"
           >
             <Layers className="w-4 h-4 text-[#FFCA1A]" />
-            <span>7 Levels — Arcade Campaign</span>
+            <span>7 Levels Campaign</span>
           </Button>
         </div>
       </section>

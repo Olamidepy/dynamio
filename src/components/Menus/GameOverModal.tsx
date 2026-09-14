@@ -1,27 +1,62 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { RotateCcw, Home, AlertOctagon } from 'lucide-react';
+import { Badge } from '../ui/badge';
+import { RotateCcw, Home, AlertOctagon, Wallet, CheckCircle, Loader2, Coins } from 'lucide-react';
 import { GameTelemetry, LevelConfig } from '../../game/types';
+import { RewardService } from '../../lib/rewards/RewardService';
+import { NimiqWalletAccount, NimiqWalletService } from '../../lib/nimiq/NimiqWalletService';
 
 interface GameOverModalProps {
   open: boolean;
   telemetry: GameTelemetry | null;
   level: LevelConfig;
+  wallet?: NimiqWalletAccount;
   onRetry: () => void;
   onHome: () => void;
+  onConnectWallet?: () => void;
 }
 
 export const GameOverModal: React.FC<GameOverModalProps> = ({
   open,
   telemetry,
   level,
+  wallet,
   onRetry,
   onHome,
+  onConnectWallet,
 }) => {
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [isClaimed, setIsClaimed] = useState(false);
+
+  const reward = telemetry ? RewardService.calculateRewards(telemetry, level) : { nimReward: 0, energyReward: 0 };
+
+  const handleClaim = async () => {
+    if (!wallet || !wallet.isConnected) {
+      if (onConnectWallet) onConnectWallet();
+      return;
+    }
+    if (reward.nimReward <= 0 || isClaimed) return;
+
+    setIsClaiming(true);
+    try {
+      const res = await NimiqWalletService.getInstance().claimRewardTransaction(
+        reward.nimReward,
+        `consolation_${level.id}_${Date.now()}`
+      );
+      if (res.success) {
+        setIsClaimed(true);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsClaiming(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="max-w-xs text-center bg-card text-card-foreground border-border/50">
+      <DialogContent className="max-w-xs sm:max-w-sm text-center bg-card text-card-foreground border-border/50 p-6 rounded-2xl shadow-2xl">
         <div className="mx-auto w-12 h-12 rounded-xl bg-destructive/10 border border-destructive/30 flex items-center justify-center mb-3">
           <AlertOctagon className="w-6 h-6 text-[#FFCA1A]" />
         </div>
@@ -33,19 +68,65 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         </p>
 
         {telemetry && (
-          <div className="bg-muted/40 p-3 rounded-xl my-4 space-y-1.5 text-left border border-border/40">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Final Score</span>
-              <span className="font-bold text-foreground">{telemetry.score.toLocaleString()}</span>
+          <div className="bg-muted/40 p-3.5 rounded-xl my-4 space-y-2 text-left border border-border/40">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground font-semibold">Dyno Points</span>
+              <span className="font-heading font-bold text-sm text-foreground">{telemetry.score.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Highest Combo</span>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground font-semibold">Highest Combo</span>
               <span className="font-bold text-[#FFCA1A]">{telemetry.highestCombo}x</span>
             </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Accuracy</span>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground font-semibold">Accuracy</span>
               <span className="font-bold text-[#FFCA1A]">{telemetry.accuracy}%</span>
             </div>
+
+            {/* Dyno Points -> Nimiq Consolation Conversion */}
+            <div className="pt-2 mt-2 border-t border-border/40 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-bold text-foreground block flex items-center gap-1">
+                  <Coins className="w-3.5 h-3.5 text-[#FFCA1A]" />
+                  <span>Converted NIM</span>
+                </span>
+                <span className="text-[9px] text-muted-foreground">Points consolation reward</span>
+              </div>
+              <span className="font-heading font-extrabold text-sm text-[#FFCA1A]">
+                +{reward.nimReward.toFixed(2)} NIM
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Claim Consolation Reward Button */}
+        {reward.nimReward > 0 && (
+          <div className="mb-4">
+            {isClaimed ? (
+              <Badge variant="secondary" className="w-full py-1.5 justify-center space-x-1 border-[#FFCA1A]/30 text-[#FFCA1A]">
+                <CheckCircle className="w-3.5 h-3.5 text-[#FFCA1A]" />
+                <span>NIM Credited to Wallet!</span>
+              </Badge>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClaim}
+                disabled={isClaiming}
+                className="w-full border-[#FFCA1A]/50 text-[#FFCA1A] hover:bg-[#FFCA1A]/10 text-xs py-2 flex items-center justify-center space-x-1.5"
+              >
+                {isClaiming ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FFCA1A]" />
+                    <span>Signing Claim...</span>
+                  </>
+                ) : (
+                  <>
+                    <Wallet className="w-3.5 h-3.5 text-[#FFCA1A]" />
+                    <span>Claim +{reward.nimReward.toFixed(2)} NIM Reward</span>
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         )}
 
@@ -53,7 +134,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
           <Button
             variant="default"
             onClick={onRetry}
-            className="w-full py-2.5 rounded-lg flex items-center justify-center space-x-2 text-xs"
+            className="w-full py-2.5 rounded-lg flex items-center justify-center space-x-2 text-xs font-bold"
           >
             <RotateCcw className="w-3.5 h-3.5 text-[#FFCA1A]" />
             <span>Try Again</span>
