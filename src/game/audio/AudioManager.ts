@@ -2,13 +2,13 @@ export class AudioManager {
   private static instance: AudioManager;
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
-  private masterVolume: number = 0.32;
+  private masterVolume: number = 0.5;
 
   // Background Music (mountain.mp3)
   private bgm: HTMLAudioElement | null = null;
   private bgmMode: 'menu' | 'game' = 'menu';
   private readonly MENU_BGM_VOL = 0.08; // Soft and atmospheric for the menu
-  private readonly GAME_BGM_VOL = 0.025; // Gentle background bed during active gameplay
+  private readonly GAME_BGM_VOL = 0.005; // Drastically reduced background bed during active gameplay
   private bgmInitialized: boolean = false;
   private fadeInterval: number | null = null;
 
@@ -79,18 +79,17 @@ export class AudioManager {
 
   private getTargetBgmVolume(): number {
     if (this.isMuted) return 0;
-    const base = this.bgmMode === 'game' ? this.GAME_BGM_VOL : this.MENU_BGM_VOL;
-    return Math.max(0, Math.min(1, base * (this.masterVolume / 0.6)));
+    return this.bgmMode === 'game' ? this.GAME_BGM_VOL : this.MENU_BGM_VOL;
   }
 
   /**
    * Set BGM mode:
-   * - 'menu': Normal subtle background music volume
-   * - 'game': Slightly reduced volume so active game sounds and ball hits shine
+   * - 'menu': Pleasant ambient background music (0.08)
+   * - 'game': Drastically reduced background bed (0.005) so gameplay and targeted hit SFX stand out loudly
    */
   public setBgmMode(mode: 'menu' | 'game') {
     this.bgmMode = mode;
-    this.fadeBgmTo(this.getTargetBgmVolume(), 400);
+    this.fadeBgmTo(this.getTargetBgmVolume(), 150);
   }
 
   private fadeBgmTo(targetVolume: number, durationMs: number = 350) {
@@ -174,7 +173,7 @@ export class AudioManager {
     osc.frequency.setValueAtTime(680, now);
     osc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
 
-    gain.gain.setValueAtTime(this.masterVolume * 0.22, now);
+    gain.gain.setValueAtTime(0.38, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
     osc.connect(gain);
@@ -201,7 +200,7 @@ export class AudioManager {
     osc.frequency.setValueAtTime(440, now);
     osc.frequency.exponentialRampToValueAtTime(880, now + 0.05);
 
-    gain.gain.setValueAtTime(this.masterVolume * 0.16, now);
+    gain.gain.setValueAtTime(0.30, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
 
     osc.connect(gain);
@@ -212,8 +211,8 @@ export class AudioManager {
   }
 
   /**
-   * Satisfying physical impact sound when ball hits or targets a sphere on the chain.
-   * Features a crisp mechanical marble click layered with a resonant sphere body thump.
+   * Loud, punchy physical impact sound when ball hits or targets a sphere on the chain.
+   * Features a crisp mechanical marble impact, resonant sphere thump, and loud targeted harmonic ping.
    */
   public playHit(isTargetedMatch: boolean = false) {
     if (this.isMuted) return;
@@ -222,51 +221,67 @@ export class AudioManager {
 
     const now = this.ctx.currentTime;
 
-    // Layer 1: Crisp high-transient click/clack (physical contact)
+    // Layer 1: Loud, crisp high-transient click/clack (physical marble impact)
     const clickOsc = this.ctx.createOscillator();
     const clickGain = this.ctx.createGain();
     clickOsc.type = 'triangle';
-    clickOsc.frequency.setValueAtTime(950, now);
-    clickOsc.frequency.exponentialRampToValueAtTime(260, now + 0.04);
+    clickOsc.frequency.setValueAtTime(1200, now);
+    clickOsc.frequency.exponentialRampToValueAtTime(320, now + 0.05);
 
-    clickGain.gain.setValueAtTime(this.masterVolume * 0.32, now);
-    clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    clickGain.gain.setValueAtTime(0.70, now);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
 
     clickOsc.connect(clickGain);
     clickGain.connect(this.ctx.destination);
     clickOsc.start(now);
-    clickOsc.stop(now + 0.04);
+    clickOsc.stop(now + 0.05);
 
-    // Layer 2: Resonant hollow sphere body thud
+    // Layer 2: Resonant hollow sphere body thud (punchy tactile impact)
     const bodyOsc = this.ctx.createOscillator();
     const bodyGain = this.ctx.createGain();
     bodyOsc.type = 'sine';
-    bodyOsc.frequency.setValueAtTime(340, now);
-    bodyOsc.frequency.exponentialRampToValueAtTime(85, now + 0.1);
+    bodyOsc.frequency.setValueAtTime(420, now);
+    bodyOsc.frequency.exponentialRampToValueAtTime(100, now + 0.12);
 
-    bodyGain.gain.setValueAtTime(this.masterVolume * 0.26, now);
-    bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    bodyGain.gain.setValueAtTime(0.55, now);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
     bodyOsc.connect(bodyGain);
     bodyGain.connect(this.ctx.destination);
     bodyOsc.start(now);
-    bodyOsc.stop(now + 0.1);
+    bodyOsc.stop(now + 0.12);
 
-    // Layer 3: If adjacent color matches (targeted hit), add an energetic harmonic ping
+    // Layer 3: If ball is targeted at matching color, trigger a loud energetic dual-harmonic ping
     if (isTargetedMatch) {
-      const pingOsc = this.ctx.createOscillator();
-      const pingGain = this.ctx.createGain();
-      pingOsc.type = 'sine';
-      pingOsc.frequency.setValueAtTime(580, now);
-      pingOsc.frequency.exponentialRampToValueAtTime(880, now + 0.14);
+      // Primary chime tone (720Hz -> 1080Hz)
+      const pingOsc1 = this.ctx.createOscillator();
+      const pingGain1 = this.ctx.createGain();
+      pingOsc1.type = 'sine';
+      pingOsc1.frequency.setValueAtTime(720, now);
+      pingOsc1.frequency.exponentialRampToValueAtTime(1080, now + 0.18);
 
-      pingGain.gain.setValueAtTime(this.masterVolume * 0.22, now);
-      pingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      pingGain1.gain.setValueAtTime(0.75, now);
+      pingGain1.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
 
-      pingOsc.connect(pingGain);
-      pingGain.connect(this.ctx.destination);
-      pingOsc.start(now);
-      pingOsc.stop(now + 0.14);
+      pingOsc1.connect(pingGain1);
+      pingGain1.connect(this.ctx.destination);
+      pingOsc1.start(now);
+      pingOsc1.stop(now + 0.18);
+
+      // Bright overtone harmonic (1440Hz -> 2160Hz)
+      const pingOsc2 = this.ctx.createOscillator();
+      const pingGain2 = this.ctx.createGain();
+      pingOsc2.type = 'triangle';
+      pingOsc2.frequency.setValueAtTime(1440, now);
+      pingOsc2.frequency.exponentialRampToValueAtTime(2160, now + 0.14);
+
+      pingGain2.gain.setValueAtTime(0.45, now);
+      pingGain2.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+      pingOsc2.connect(pingGain2);
+      pingGain2.connect(this.ctx.destination);
+      pingOsc2.start(now);
+      pingOsc2.stop(now + 0.14);
     }
   }
 

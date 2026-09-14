@@ -27,11 +27,10 @@ export class CameraManager {
     const aspect = width / height;
     this.camera.aspect = aspect;
 
-    // Arena track reaches x = ±15.5 and z = ±14.5, with island cylinder radius = 18.
-    // With sphere radii and safety breathing room, fitRadius = 22.0 guarantees
-    // 100% visibility of all corners, perimeter ball movement, and track end vortex
-    // on both mobile portrait and desktop widescreen.
-    const fitRadius = 22.0;
+    // Arena track spheres reach maximum x = ±15.0 + 0.75 radius = ±15.75.
+    // Setting fitRadius = 16.8 scales the arena up significantly so it fills the screen,
+    // while guaranteeing balls never touch the end of the screen (~6% safe bezel margin).
+    const fitRadius = 16.8;
     const vFovHalfRad = (45 * 0.5 * Math.PI) / 180; // tan(22.5°) ≈ 0.4142
 
     const distV = fitRadius / Math.tan(vFovHalfRad);
