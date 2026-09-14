@@ -24,7 +24,7 @@ export class ChainSegment {
 
   public get tailDistance(): number {
     if (this.balls.length === 0) return this.headDistance;
-    return this.headDistance - (this.balls.length - 1) * 1.44;
+    return this.headDistance - (this.balls.length - 1) * 1.1;
   }
 
   /**
@@ -32,7 +32,7 @@ export class ChainSegment {
    * Distance is strictly path-locked: distance[k] = headDistance - (len - 1 - k) * diameter.
    * ZERO drifting, ZERO overlapping!
    */
-  public updateBallDistances(diameter: number = 1.44) {
+  public updateBallDistances(diameter: number = 1.1) {
     const len = this.balls.length;
     for (let k = 0; k < len; k++) {
       this.balls[k].pathDistance = this.headDistance - (len - 1 - k) * diameter;
@@ -50,8 +50,8 @@ export class BallChain {
   public segments: ChainSegment[] = []; // Ordered from tail (segment 0) to head (segment N-1)
   public balls: Ball[] = []; // Flattened view for rendering and external systems
   public splinePath: SplinePath;
-  public ballRadius: number = 0.72;
-  public ballDiameter: number = 1.44;
+  public ballRadius: number = 0.55;
+  public ballDiameter: number = 1.1;
   public totalSpawned: number = 0;
   public maxBallsToSpawn: number = 30;
   public isSpawningFinished: boolean = false;
@@ -305,7 +305,7 @@ export class BallChain {
     for (let i = 0; i < this.balls.length; i++) {
       const b = this.balls[i];
       const pos = this.splinePath.getPointAtDistance(b.pathDistance);
-      pos.y = 0.72; // Sits above the ribbon bed in full view
+      pos.y = 0.58; // Sits above the ribbon bed in full view
       b.setPosition(pos);
 
       if (dt > 0) {

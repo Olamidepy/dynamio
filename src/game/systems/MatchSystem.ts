@@ -30,16 +30,16 @@ export class MatchSystem {
 
     // Scan backward along the chain for same color
     while (start > 0 && balls[start - 1].color === targetColor) {
-      // Also ensure distance between balls is approximately contiguous (within 1.3 units)
+      // Also ensure distance between balls is approximately contiguous (within normal spacing)
       const dist = Math.abs(balls[start].pathDistance - balls[start - 1].pathDistance);
-      if (dist > 1.4) break; // Gap exists, cannot match across gap
+      if (dist > 1.45) break; // Gap exists, cannot match across gap
       start--;
     }
 
     // Scan forward along the chain for same color
     while (end < balls.length - 1 && balls[end + 1].color === targetColor) {
       const dist = Math.abs(balls[end + 1].pathDistance - balls[end].pathDistance);
-      if (dist > 1.4) break;
+      if (dist > 1.45) break;
       end++;
     }
 

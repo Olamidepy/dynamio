@@ -1,21 +1,33 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent } from '../ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '../ui/dialog';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '../ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { Switch } from '../ui/switch';
 import {
   Swords,
   Trophy,
-  Zap,
-  Lock,
-  Globe,
   Share2,
   Check,
-  ChevronRight,
-  Sparkles,
   Users,
   Coins,
-  ArrowUpRight,
-  Flame,
+  Shield,
+  Lock,
+  Globe,
 } from 'lucide-react';
 import { LEVELS } from '../../game/data/levels';
 import { LevelConfig } from '../../game/types';
@@ -45,7 +57,6 @@ const RECENT_WINNERS = [
   { player: '@ChainMaster', amount: 17.0, level: 'Cobalt S-Bend', time: '28m ago' },
   { player: '@ZumaWizard', amount: 10.0, level: 'Neon Gateway', time: '1h ago' },
   { player: '@VortexHunter', amount: 45.0, level: 'Quantum Vortex', time: '2h ago' },
-  { player: '@Solaris', amount: 30.0, level: 'Solar Flare', time: '3h ago' },
 ];
 
 const INITIAL_OPEN_CHALLENGES: OpenChallenge[] = [
@@ -88,6 +99,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   onStartChallengeMatch,
   onConnectWallet,
 }) => {
+  const [selectedTab, setSelectedTab] = useState<string>('create');
   const [selectedEntryFee, setSelectedEntryFee] = useState<number>(20);
   const [selectedLevelId, setSelectedLevelId] = useState<number>(2);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
@@ -95,12 +107,11 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   const [myMatches, setMyMatches] = useState<OpenChallenge[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Pool breakdown for 3 players
+  // Pool distribution for 3 players
   const totalPool = selectedEntryFee * 3;
   const firstPrize = Math.round(totalPool * 0.5); // 50% = 30 NIM for 60
   const secondPrize = Math.round(totalPool * 0.283); // 28.3% = 17 NIM for 60
   const thirdPrize = Math.round(totalPool * 0.167); // 16.7% = 10 NIM for 60
-  const burnFee = totalPool - (firstPrize + secondPrize + thirdPrize); // 3 NIM
 
   const handleCreateChallenge = async () => {
     if (!wallet.isConnected) {
@@ -165,275 +176,313 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md sm:max-w-xl text-left bg-card text-card-foreground border-border/60 p-4 sm:p-6 rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-border/40">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#FFCA1A]/10 border border-[#FFCA1A]/30 flex items-center justify-center">
-              <Swords className="w-5 h-5 text-[#FFCA1A]" />
-            </div>
-            <div>
-              <h2 className="font-heading font-black text-xl sm:text-2xl text-foreground flex items-center gap-1.5">
-                VS Challenges
-              </h2>
-              <p className="text-[11px] sm:text-xs text-muted-foreground">
-                Compete on identical track seeds for real NIM prize pools.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* 🏆 Motivation Ticker: Recent Winners */}
-        <div className="my-3 bg-muted/40 p-2.5 rounded-xl border border-border/50">
-          <div className="flex items-center justify-between mb-1.5 px-1">
-            <span className="text-[10px] uppercase font-bold text-[#FFCA1A] flex items-center gap-1">
-              <Trophy className="w-3 h-3 text-[#FFCA1A]" />
-              <span>Recent Champions & Payouts</span>
-            </span>
-            <span className="text-[9px] text-muted-foreground">Live Feed</span>
-          </div>
-
-          <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none">
-            {RECENT_WINNERS.map((win, idx) => (
-              <div
-                key={idx}
-                className="shrink-0 bg-background/80 backdrop-blur-sm px-2.5 py-1.5 rounded-lg border border-border/60 flex items-center space-x-1.5 text-xs shadow-xs"
-              >
-                <span className="font-bold text-foreground text-[11px]">{win.player}</span>
-                <span className="text-[10px] text-muted-foreground">won</span>
-                <span className="font-heading font-extrabold text-[#FFCA1A] text-[11px]">
-                  +{win.amount.toFixed(0)} NIM
-                </span>
-                <span className="text-[9px] text-muted-foreground">({win.level})</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ⚡ 1. Create a Challenge Card */}
-        <div className="bg-muted/30 p-3.5 sm:p-4 rounded-xl border border-border/50 mb-4 space-y-3">
+      <DialogContent className="max-w-2xl p-6 sm:p-8 space-y-6" onClose={() => onOpenChange(false)}>
+        {/* Dialog Header */}
+        <DialogHeader className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-              <Coins className="w-4 h-4 text-[#FFCA1A]" />
-              <span>Create a Challenge</span>
-            </span>
-            <Badge variant="outline" className="text-[10px] text-[#FFCA1A] border-[#FFCA1A]/30">
-              3-Player Arena
+            <div className="flex items-center space-x-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20">
+                <Swords className="h-5 w-5 text-[#FFCA1A]" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl sm:text-2xl font-bold tracking-tight">
+                  VS Challenges
+                </DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm">
+                  Compete on identical track seeds for real NIM prize pools.
+                </DialogDescription>
+              </div>
+            </div>
+            <Badge variant="outline" className="text-xs font-semibold border-primary/30 text-primary">
+              <Coins className="w-3 h-3 mr-1" />
+              NIM Arena
             </Badge>
           </div>
+        </DialogHeader>
 
-          {/* Level Selection */}
-          <div>
-            <label className="text-[10px] sm:text-[11px] uppercase font-semibold text-muted-foreground block mb-1">
-              Select Arena Track
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-              {LEVELS.slice(0, 4).map((lvl) => (
-                <button
-                  key={lvl.id}
-                  onClick={() => setSelectedLevelId(lvl.id)}
-                  className={`px-2 py-1.5 rounded-lg border text-xs font-semibold text-left transition-all cursor-pointer ${
-                    selectedLevelId === lvl.id
-                      ? 'border-[#FFCA1A] bg-[#FFCA1A]/10 text-foreground'
-                      : 'border-border/60 text-muted-foreground hover:bg-accent'
-                  }`}
-                >
-                  <div className="truncate text-[11px]">{lvl.name}</div>
-                  <div className="text-[9px] text-muted-foreground">Lvl {lvl.id}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Entry Fee Selection */}
-          <div>
-            <label className="text-[10px] sm:text-[11px] uppercase font-semibold text-muted-foreground block mb-1">
-              NIM Entry Fee
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {[5, 10, 20, 50].map((fee) => (
-                <button
-                  key={fee}
-                  onClick={() => setSelectedEntryFee(fee)}
-                  className={`py-2 rounded-xl border text-center font-bold text-xs sm:text-sm transition-all cursor-pointer ${
-                    selectedEntryFee === fee
-                      ? 'border-[#FFCA1A] bg-[#FFCA1A] text-black shadow-md shadow-[#FFCA1A]/20'
-                      : 'border-border/60 text-foreground bg-background/60 hover:bg-accent'
-                  }`}
-                >
-                  {fee} NIM
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Prize Distribution Breakdown */}
-          <div className="bg-background/70 p-2.5 rounded-xl border border-border/40 text-xs space-y-1">
-            <div className="flex justify-between text-[11px] font-semibold text-foreground pb-1 border-b border-border/30">
-              <span>Prize Pool ({totalPool} NIM Total)</span>
-              <span className="text-[#FFCA1A]">Top 3 Share</span>
-            </div>
-            <div className="grid grid-cols-3 gap-1.5 text-center pt-1">
-              <div className="bg-muted/40 p-1.5 rounded-lg">
-                <span className="text-[9px] text-muted-foreground block">🥇 1st Place</span>
-                <span className="font-heading font-extrabold text-[#FFCA1A] text-xs sm:text-sm">
-                  {firstPrize} NIM
-                </span>
-                <span className="text-[8px] text-muted-foreground block">(50%)</span>
-              </div>
-              <div className="bg-muted/40 p-1.5 rounded-lg">
-                <span className="text-[9px] text-muted-foreground block">🥈 2nd Place</span>
-                <span className="font-heading font-extrabold text-foreground text-xs sm:text-sm">
-                  {secondPrize} NIM
-                </span>
-                <span className="text-[8px] text-muted-foreground block">(28%)</span>
-              </div>
-              <div className="bg-muted/40 p-1.5 rounded-lg">
-                <span className="text-[9px] text-muted-foreground block">🥉 3rd Place</span>
-                <span className="font-heading font-extrabold text-muted-foreground text-xs sm:text-sm">
-                  {thirdPrize} NIM
-                </span>
-                <span className="text-[8px] text-muted-foreground block">(17%)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Private Match Toggle */}
-          <div className="flex items-center justify-between py-1 px-1">
-            <div className="flex items-center space-x-2">
-              {isPrivate ? (
-                <Lock className="w-3.5 h-3.5 text-[#FFCA1A]" />
-              ) : (
-                <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-              )}
-              <span className="text-xs text-foreground font-medium">
-                {isPrivate ? 'Private Challenge' : 'Public Challenge'}
-              </span>
-              <span className="text-[10px] text-muted-foreground">
-                ({isPrivate ? 'Invite link only' : 'Listed in Open Challenges'})
-              </span>
-            </div>
-            <button
-              onClick={() => setIsPrivate(!isPrivate)}
-              className={`w-11 h-6 rounded-full transition-colors flex items-center px-1 cursor-pointer ${
-                isPrivate ? 'bg-[#FFCA1A] justify-end' : 'bg-muted-foreground/30 justify-start'
-              }`}
-            >
-              <div className="w-4 h-4 rounded-full bg-black shadow-sm" />
-            </button>
-          </div>
-
-          {/* Action Button */}
-          <Button
-            variant="default"
-            size="lg"
-            onClick={handleCreateChallenge}
-            className="w-full font-bold shadow-lg text-xs sm:text-sm h-11"
-          >
-            <Coins className="w-4 h-4 mr-2" />
-            <span>Pay {selectedEntryFee}.00 NIM & Start Match</span>
-          </Button>
+        {/* Live Winners Feed */}
+        <div className="flex items-center space-x-2 overflow-x-auto py-1 text-xs scrollbar-none border-y border-border/50">
+          <span className="flex items-center gap-1 font-semibold text-muted-foreground shrink-0 text-xs pl-1">
+            <Trophy className="w-3.5 h-3.5 text-[#FFCA1A]" />
+            <span>Recent Winners:</span>
+          </span>
+          {RECENT_WINNERS.map((w, idx) => (
+            <Badge key={idx} variant="secondary" className="shrink-0 font-normal text-xs py-1 px-2.5">
+              <span className="font-semibold text-foreground mr-1">{w.player}</span>
+              <span className="text-primary font-bold mr-1">+{w.amount} NIM</span>
+              <span className="text-muted-foreground text-[10px]">({w.level})</span>
+            </Badge>
+          ))}
         </div>
 
-        {/* 🎮 2. Open Public Challenges */}
-        <div className="mb-4 space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <span className="text-xs sm:text-sm font-bold text-foreground flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-[#FFCA1A]" />
-              <span>Open Challenges</span>
-            </span>
-            <span className="text-[10px] text-muted-foreground">{openChallenges.length} Active</span>
-          </div>
+        {/* Tabs: Create Challenge, Open Arenas, My Matches */}
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} defaultValue="create" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="create">
+              <Coins className="w-4 h-4 mr-2" />
+              Create Arena
+            </TabsTrigger>
+            <TabsTrigger value="open">
+              <Users className="w-4 h-4 mr-2" />
+              Open Arenas ({openChallenges.length})
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="space-y-1.5">
-            {openChallenges.map((chall) => {
-              const lvl = LEVELS.find((l) => l.id === chall.levelId) || LEVELS[0];
-              return (
-                <div
-                  key={chall.id}
-                  className="bg-muted/40 p-2.5 rounded-xl border border-border/50 flex items-center justify-between gap-2"
-                >
-                  <div>
+          {/* TAB 1: CREATE ARENA */}
+          <TabsContent value="create" className="space-y-6">
+            <Card>
+              <CardHeader className="space-y-1">
+                <CardTitle className="text-base sm:text-lg">Arena Configuration</CardTitle>
+                <CardDescription>
+                  Configure the track difficulty and wager amount. 3 players will compete on the exact same sequence.
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="space-y-6">
+                {/* 1. Track Selection */}
+                <div className="space-y-2.5">
+                  <label className="text-sm font-medium text-foreground">
+                    Select Track
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {LEVELS.slice(0, 4).map((lvl) => {
+                      const isSelected = selectedLevelId === lvl.id;
+                      return (
+                        <button
+                          key={lvl.id}
+                          type="button"
+                          onClick={() => setSelectedLevelId(lvl.id)}
+                          className={`flex flex-col items-start p-3 rounded-lg border text-left transition-all cursor-pointer ${
+                            isSelected
+                              ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                              : 'border-border bg-card hover:bg-muted/50'
+                          }`}
+                        >
+                          <span className="text-xs font-semibold text-foreground truncate w-full">
+                            {lvl.name}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground mt-0.5">
+                            Level {lvl.id}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Wager Entry Fee */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-foreground">
+                      Entry Fee per Player
+                    </label>
+                    <span className="text-xs text-muted-foreground">
+                      Total Pool: <strong className="text-primary font-bold">{totalPool} NIM</strong>
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-3">
+                    {[5, 10, 20, 50].map((fee) => {
+                      const isSelected = selectedEntryFee === fee;
+                      return (
+                        <Button
+                          key={fee}
+                          type="button"
+                          variant={isSelected ? 'default' : 'outline'}
+                          onClick={() => setSelectedEntryFee(fee)}
+                          className={`font-semibold h-11 ${
+                            isSelected ? 'bg-primary text-primary-foreground' : ''
+                          }`}
+                        >
+                          {fee} NIM
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Prize Pool Distribution Breakdown */}
+                <div className="rounded-lg border border-border bg-muted/40 p-4 space-y-3">
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="text-foreground">Prize Pool Distribution</span>
+                    <span className="text-primary font-bold">{totalPool} NIM Total</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="rounded-md border border-border/60 bg-background/70 p-2.5">
+                      <span className="text-[11px] text-muted-foreground block">1st Place</span>
+                      <span className="text-sm sm:text-base font-bold text-primary">
+                        {firstPrize} NIM
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block">(50%)</span>
+                    </div>
+                    <div className="rounded-md border border-border/60 bg-background/70 p-2.5">
+                      <span className="text-[11px] text-muted-foreground block">2nd Place</span>
+                      <span className="text-sm sm:text-base font-bold text-foreground">
+                        {secondPrize} NIM
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block">(28.3%)</span>
+                    </div>
+                    <div className="rounded-md border border-border/60 bg-background/70 p-2.5">
+                      <span className="text-[11px] text-muted-foreground block">3rd Place</span>
+                      <span className="text-sm sm:text-base font-bold text-muted-foreground">
+                        {thirdPrize} NIM
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block">(16.7%)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Privacy Toggle Switch */}
+                <div className="flex items-center justify-between rounded-lg border border-border p-4">
+                  <div className="space-y-0.5">
                     <div className="flex items-center space-x-2">
-                      <span className="font-heading font-bold text-xs sm:text-sm text-foreground">
-                        {lvl.name}
-                      </span>
-                      <Badge variant="outline" className="text-[9px] text-[#FFCA1A] border-[#FFCA1A]/30">
-                        {chall.entryFee} NIM
-                      </Badge>
-                    </div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-2">
-                      <span>Pool: {chall.pool} NIM</span>
-                      <span>•</span>
-                      <span>
-                        {chall.joinedCount}/{chall.maxPlayers} Joined
-                      </span>
-                      <span>•</span>
-                      <span>By {chall.creator}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-1.5">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCopyInvite(chall.id)}
-                      className="h-8 px-2 text-[11px] border-border/60"
-                      title="Share Challenge Link"
-                    >
-                      {copiedId === chall.id ? (
-                        <Check className="w-3 h-3 text-[#00875a]" />
+                      {isPrivate ? (
+                        <Lock className="w-4 h-4 text-primary" />
                       ) : (
-                        <Share2 className="w-3 h-3 text-[#FFCA1A]" />
+                        <Globe className="w-4 h-4 text-muted-foreground" />
                       )}
-                    </Button>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => handleJoinChallenge(chall)}
-                      className="h-8 px-3 text-xs font-bold"
-                    >
-                      <span>Join ({chall.entryFee}N)</span>
-                    </Button>
+                      <span className="text-sm font-medium text-foreground">
+                        {isPrivate ? 'Private Challenge' : 'Public Arena'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {isPrivate
+                        ? 'Only players with your direct challenge invite link can join'
+                        : 'Listed publicly for any online player to join immediately'}
+                    </p>
                   </div>
+                  <Switch
+                    checked={isPrivate}
+                    onCheckedChange={setIsPrivate}
+                    id="challenge-privacy"
+                  />
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </CardContent>
 
-        {/* ⏱️ 3. My Matches */}
-        {myMatches.length > 0 && (
-          <div className="space-y-2">
-            <span className="text-xs font-bold text-foreground px-1 block">My Active Matches</span>
-            <div className="space-y-1.5">
-              {myMatches.map((m) => (
-                <div
-                  key={m.id}
-                  className="bg-muted/30 p-2.5 rounded-xl border border-border/40 flex items-center justify-between text-xs"
+              <CardFooter className="pt-2">
+                <Button
+                  size="lg"
+                  onClick={handleCreateChallenge}
+                  className="w-full font-bold h-12 text-sm"
                 >
-                  <div>
-                    <span className="font-bold text-foreground block">
-                      Level {m.levelId} Challenge ({m.entryFee} NIM)
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      Waiting for opponents • Pool: {m.pool} NIM
-                    </span>
+                  <Coins className="w-4 h-4 mr-2" />
+                  <span>
+                    {wallet.isConnected
+                      ? `Create Arena & Enter (${selectedEntryFee} NIM)`
+                      : 'Connect Wallet to Enter'}
+                  </span>
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+
+          {/* TAB 2: OPEN ARENAS */}
+          <TabsContent value="open" className="space-y-4">
+            <Card>
+              <CardHeader className="space-y-1">
+                <CardTitle className="text-base sm:text-lg">Active Public Arenas</CardTitle>
+                <CardDescription>
+                  Join an open challenge to play immediately. Top scores take home the NIM pool.
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="space-y-3">
+                {openChallenges.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No public challenges open right now. Switch to Create Arena to start one!
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCopyInvite(m.id)}
-                    className="h-7 text-[10px] gap-1 border-border/60 text-[#FFCA1A]"
-                  >
-                    <Share2 className="w-3 h-3" />
-                    <span>{copiedId === m.id ? 'Copied!' : 'Share Link'}</span>
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+                ) : (
+                  openChallenges.map((chall) => {
+                    const lvl = LEVELS.find((l) => l.id === chall.levelId) || LEVELS[0];
+                    return (
+                      <div
+                        key={chall.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border border-border bg-card hover:bg-muted/30 transition-colors gap-3"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-semibold text-sm text-foreground">
+                              {lvl.name}
+                            </span>
+                            <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                              {chall.entryFee} NIM
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center space-x-2">
+                            <span>Pool: <strong>{chall.pool} NIM</strong></span>
+                            <span>•</span>
+                            <span>{chall.joinedCount}/{chall.maxPlayers} Contenders</span>
+                            <span>•</span>
+                            <span>Created by {chall.creator}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCopyInvite(chall.id)}
+                            className="h-9 px-3 text-xs"
+                            title="Copy Challenge Link"
+                          >
+                            {copiedId === chall.id ? (
+                              <Check className="w-3.5 h-3.5 text-green-500 mr-1.5" />
+                            ) : (
+                              <Share2 className="w-3.5 h-3.5 mr-1.5" />
+                            )}
+                            <span>{copiedId === chall.id ? 'Copied' : 'Share'}</span>
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleJoinChallenge(chall)}
+                            className="h-9 px-4 font-semibold text-xs"
+                          >
+                            Join ({chall.entryFee} NIM)
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+
+            {/* My Active Matches Section if user has any */}
+            {myMatches.length > 0 && (
+              <Card>
+                <CardHeader className="space-y-1">
+                  <CardTitle className="text-sm font-semibold">My Active Arenas</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {myMatches.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20 text-xs"
+                    >
+                      <div>
+                        <span className="font-semibold text-foreground">
+                          Level {m.levelId} Challenge ({m.entryFee} NIM)
+                        </span>
+                        <p className="text-[11px] text-muted-foreground">
+                          Awaiting opponents • Pool: {m.pool} NIM
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopyInvite(m.id)}
+                        className="h-8 text-xs"
+                      >
+                        <Share2 className="w-3 h-3 mr-1" />
+                        <span>{copiedId === m.id ? 'Copied!' : 'Share Link'}</span>
+                      </Button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
