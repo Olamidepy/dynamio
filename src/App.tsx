@@ -18,6 +18,7 @@ import { HowToPlaySection } from './components/Sections/HowToPlaySection';
 import { LevelPreviewSection } from './components/Sections/LevelPreviewSection';
 import { LoadingScreen } from './components/Menus/LoadingScreen';
 import { ReadyCountdown } from './components/HUD/ReadyCountdown';
+import { AudioManager } from './game/audio/AudioManager';
 
 export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -77,6 +78,17 @@ export const App: React.FC = () => {
     const unsubState = engine.stateMachine.subscribe((newState) => {
       setGameState(newState);
 
+      // Transition background music volume smoothly between menu and active gameplay
+      if (newState === 'TITLE' || newState === 'BOOT') {
+        AudioManager.getInstance().setBgmMode('menu');
+      } else if (
+        newState === 'LOADING' ||
+        newState === 'READY' ||
+        newState === 'PLAYING'
+      ) {
+        AudioManager.getInstance().setBgmMode('game');
+      }
+
       if (newState === 'LEVEL_COMPLETE' || newState === 'GAME_OVER') {
         const tel = engine.scoreSystem.getTelemetry(
           engine.currentLevel,
@@ -126,6 +138,7 @@ export const App: React.FC = () => {
 
   const handlePlayQuick = () => {
     if (!engineRef.current) return;
+    AudioManager.getInstance().setBgmMode('game');
     const targetLvl = LEVELS[Math.min(progress.unlockedLevel - 1, LEVELS.length - 1)];
     setCurrentLevel(targetLvl);
     engineRef.current.prepareGame(targetLvl);
@@ -133,12 +146,14 @@ export const App: React.FC = () => {
 
   const handleSelectLevel = (lvl: LevelConfig) => {
     if (!engineRef.current) return;
+    AudioManager.getInstance().setBgmMode('game');
     setCurrentLevel(lvl);
     engineRef.current.prepareGame(lvl);
   };
 
   const handlePlayDaily = (lvl: LevelConfig) => {
     if (!engineRef.current) return;
+    AudioManager.getInstance().setBgmMode('game');
     setCurrentLevel(lvl);
     engineRef.current.prepareGame(lvl);
   };
@@ -170,6 +185,7 @@ export const App: React.FC = () => {
 
   const handleQuitToMenu = () => {
     if (!engineRef.current) return;
+    AudioManager.getInstance().setBgmMode('menu');
     setIsFullscreen(false);
     engineRef.current.stateMachine.setState('TITLE');
     engineRef.current.loadLevel(LEVELS[0]);

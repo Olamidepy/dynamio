@@ -211,7 +211,7 @@ export class GameEngine {
         (idx < balls.length - 1 && balls[idx + 1].color === bColor);
 
       this.scoreSystem.registerHit(isSameColorAdjacent);
-      this.audioManager.playHit();
+      this.audioManager.playHit(isSameColorAdjacent);
 
       // Check match-3 at insertion point
       const match = MatchSystem.checkMatchAtIndex(
