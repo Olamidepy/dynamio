@@ -62,6 +62,36 @@ export class NimiqWalletService {
   }
 
   /**
+   * Fetches the real on-chain balance from the Nimiq network (Mainnet / Testnet)
+   */
+  public async fetchOnChainBalance(address: string): Promise<number | null> {
+    const clean = address.replace(/\s+/g, '').toUpperCase();
+    if (!clean.startsWith('NQ')) return null;
+
+    try {
+      const res = await fetch(`https://api.nimiq.watch/account/${clean}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.balance === 'number') {
+          return data.balance / 1e5; // Convert Lunas to NIM
+        }
+      }
+    } catch {
+      // Try testnet fallback
+      try {
+        const res = await fetch(`https://api.nimiq-testnet.watch/account/${clean}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (typeof data.balance === 'number') {
+            return data.balance / 1e5;
+          }
+        }
+      } catch {}
+    }
+    return null;
+  }
+
+  /**
    * Fetches the user's accounts, consensus, and block height from Nimiq Pay
    */
   public async syncMiniAppAccount(): Promise<NimiqWalletAccount | null> {
@@ -77,10 +107,13 @@ export class NimiqWalletService {
       const accounts = Array.isArray(accountsResult) ? accountsResult : [];
       if (accounts.length > 0) {
         const address = accounts[0];
+        // Fetch real live on-chain balance
+        const liveBal = await this.fetchOnChainBalance(address);
+
         this.account = {
           address,
           formattedAddress: this.formatAddress(address),
-          balanceNim: this.account.balanceNim > 0 ? this.account.balanceNim : 25.0,
+          balanceNim: liveBal !== null ? liveBal : (this.account.balanceNim || 0),
           isConnected: true,
           isMiniApp: true,
           consensus: !!consensusResult,
