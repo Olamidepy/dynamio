@@ -32,7 +32,6 @@ export const App: React.FC = () => {
   const [wallet, setWallet] = useState<NimiqWalletAccount>(
     NimiqWalletService.getInstance().getAccount()
   );
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const isPlayingActive =
     gameState === 'PLAYING' ||
@@ -126,15 +125,17 @@ export const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const handleResize = () => {
       if (canvasRef.current && engineRef.current) {
         const w = canvasRef.current.parentElement?.clientWidth || window.innerWidth;
         const h = canvasRef.current.parentElement?.clientHeight || window.innerHeight;
         engineRef.current.sceneManager.resize(w, h);
       }
-    }, 60);
+    };
+    handleResize();
+    const timer = setTimeout(handleResize, 60);
     return () => clearTimeout(timer);
-  }, [isPlayingActive, isFullscreen]);
+  }, [isPlayingActive]);
 
   const handlePlayQuick = () => {
     if (!engineRef.current) return;
@@ -186,25 +187,12 @@ export const App: React.FC = () => {
   const handleQuitToMenu = () => {
     if (!engineRef.current) return;
     AudioManager.getInstance().setBgmMode('menu');
-    setIsFullscreen(false);
     engineRef.current.stateMachine.setState('TITLE');
     engineRef.current.loadLevel(LEVELS[0]);
   };
 
   const handleSwap = () => {
     engineRef.current?.swapBall();
-  };
-
-  const handleToggleFullscreen = () => {
-    const next = !isFullscreen;
-    setIsFullscreen(next);
-    setTimeout(() => {
-      if (canvasRef.current && engineRef.current) {
-        const w = canvasRef.current.parentElement?.clientWidth || window.innerWidth;
-        const h = canvasRef.current.parentElement?.clientHeight || window.innerHeight;
-        engineRef.current.sceneManager.resize(w, h);
-      }
-    }, 60);
   };
 
   const scrollToHowToPlay = () => {
@@ -229,22 +217,18 @@ export const App: React.FC = () => {
       )}
 
       {/* 2. PERSISTENT 3D DIORAMA CONTAINER (Canvas is NEVER unmounted!) */}
-      {/* 2. Central 3D Canvas Viewport - Fully Centralized */}
+      {/* Central 3D Canvas Viewport - Takes over entire screen when game is active */}
       <div
         className={
-          isFullscreen && isPlayingActive
-            ? 'fixed inset-0 z-40 bg-[#020202] w-full h-full'
-            : isPlayingActive
-            ? 'w-full max-w-5xl mx-auto px-3 sm:px-4 md:px-6 py-2 sm:py-4 flex-1 flex flex-col items-center justify-center'
+          isPlayingActive
+            ? 'fixed inset-0 z-40 bg-[#020202] w-full h-full flex flex-col items-center justify-center'
             : 'container mx-auto max-w-screen-xl px-3 sm:px-4 md:px-8 mt-8 sm:mt-12 md:mt-16 mb-16 sm:mb-24 md:mb-32 flex flex-col items-center'
         }
       >
         <div
           className={
-            isFullscreen && isPlayingActive
+            isPlayingActive
               ? 'w-full h-full relative bg-cover bg-center'
-              : isPlayingActive
-              ? 'relative w-full max-w-5xl mx-auto h-[460px] sm:h-[560px] md:h-[680px] rounded-xl sm:rounded-2xl md:rounded-3xl overflow-hidden border border-border/40 bg-card shadow-2xl shadow-black/90 bg-cover bg-center'
               : 'relative w-full max-w-5xl mx-auto h-[350px] sm:h-[460px] md:h-[580px] rounded-xl sm:rounded-2xl md:rounded-3xl overflow-hidden border border-border/40 bg-card shadow-2xl shadow-black/80 bg-cover bg-center'
           }
           style={{
@@ -280,8 +264,6 @@ export const App: React.FC = () => {
               hudData={hudData}
               onPause={handlePause}
               onSwap={handleSwap}
-              isFullscreen={isFullscreen}
-              onToggleFullscreen={handleToggleFullscreen}
             />
           )}
 
@@ -299,7 +281,7 @@ export const App: React.FC = () => {
       </div>
 
       {/* 3. Campaign Levels Preview & How to Play & Footer (shown on landing page) */}
-      {(!isFullscreen || !isPlayingActive) && (
+      {!isPlayingActive && (
         <>
           {/* Level Previews in continuous translational motion */}
           <LevelPreviewSection

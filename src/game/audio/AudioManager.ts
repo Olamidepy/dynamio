@@ -2,13 +2,13 @@ export class AudioManager {
   private static instance: AudioManager;
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
-  private masterVolume: number = 0.6;
+  private masterVolume: number = 0.32;
 
   // Background Music (mountain.mp3)
   private bgm: HTMLAudioElement | null = null;
   private bgmMode: 'menu' | 'game' = 'menu';
-  private readonly MENU_BGM_VOL = 0.24; // Subtle, atmospheric, not too loud
-  private readonly GAME_BGM_VOL = 0.10; // Ducked down during active gameplay
+  private readonly MENU_BGM_VOL = 0.08; // Soft and atmospheric for the menu
+  private readonly GAME_BGM_VOL = 0.025; // Gentle background bed during active gameplay
   private bgmInitialized: boolean = false;
   private fadeInterval: number | null = null;
 
@@ -174,7 +174,7 @@ export class AudioManager {
     osc.frequency.setValueAtTime(680, now);
     osc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
 
-    gain.gain.setValueAtTime(this.masterVolume * 0.35, now);
+    gain.gain.setValueAtTime(this.masterVolume * 0.22, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
     osc.connect(gain);
@@ -201,7 +201,7 @@ export class AudioManager {
     osc.frequency.setValueAtTime(440, now);
     osc.frequency.exponentialRampToValueAtTime(880, now + 0.05);
 
-    gain.gain.setValueAtTime(this.masterVolume * 0.25, now);
+    gain.gain.setValueAtTime(this.masterVolume * 0.16, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
 
     osc.connect(gain);
@@ -229,7 +229,7 @@ export class AudioManager {
     clickOsc.frequency.setValueAtTime(950, now);
     clickOsc.frequency.exponentialRampToValueAtTime(260, now + 0.04);
 
-    clickGain.gain.setValueAtTime(this.masterVolume * 0.55, now);
+    clickGain.gain.setValueAtTime(this.masterVolume * 0.32, now);
     clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
 
     clickOsc.connect(clickGain);
@@ -244,7 +244,7 @@ export class AudioManager {
     bodyOsc.frequency.setValueAtTime(340, now);
     bodyOsc.frequency.exponentialRampToValueAtTime(85, now + 0.1);
 
-    bodyGain.gain.setValueAtTime(this.masterVolume * 0.45, now);
+    bodyGain.gain.setValueAtTime(this.masterVolume * 0.26, now);
     bodyGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
 
     bodyOsc.connect(bodyGain);
@@ -260,7 +260,7 @@ export class AudioManager {
       pingOsc.frequency.setValueAtTime(580, now);
       pingOsc.frequency.exponentialRampToValueAtTime(880, now + 0.14);
 
-      pingGain.gain.setValueAtTime(this.masterVolume * 0.4, now);
+      pingGain.gain.setValueAtTime(this.masterVolume * 0.22, now);
       pingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
 
       pingOsc.connect(pingGain);
@@ -292,7 +292,7 @@ export class AudioManager {
       osc.type = idx === 0 ? 'triangle' : 'sine';
       osc.frequency.setValueAtTime(baseFreq * mult, now);
 
-      gain.gain.setValueAtTime(this.masterVolume * 0.35, now);
+      gain.gain.setValueAtTime(this.masterVolume * 0.22, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
 
       osc.connect(gain);
@@ -322,7 +322,7 @@ export class AudioManager {
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, startTime);
 
-      gain.gain.setValueAtTime(this.masterVolume * 0.4, startTime);
+      gain.gain.setValueAtTime(this.masterVolume * 0.25, startTime);
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
 
       osc.connect(gain);
@@ -349,7 +349,7 @@ export class AudioManager {
     osc.frequency.setValueAtTime(160, now);
     osc.frequency.exponentialRampToValueAtTime(45, now + 0.6);
 
-    gain.gain.setValueAtTime(this.masterVolume * 0.35, now);
+    gain.gain.setValueAtTime(this.masterVolume * 0.22, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
 
     osc.connect(gain);

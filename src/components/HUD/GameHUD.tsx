@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pause, RotateCw, Maximize2, Minimize2 } from 'lucide-react';
+import { Pause, RotateCw } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
@@ -10,16 +10,12 @@ interface GameHUDProps {
   hudData: HUDUpdateData;
   onPause: () => void;
   onSwap: () => void;
-  isFullscreen?: boolean;
-  onToggleFullscreen?: () => void;
 }
 
 export const GameHUD: React.FC<GameHUDProps> = ({
   hudData,
   onPause,
   onSwap,
-  isFullscreen,
-  onToggleFullscreen,
 }) => {
   const currentColor = SPHERE_COLORS[hudData.currentBallColor];
   const nextColor = SPHERE_COLORS[hudData.nextBallColor];
@@ -57,22 +53,6 @@ export const GameHUD: React.FC<GameHUDProps> = ({
 
         {/* Right Controls */}
         <div className="flex items-center space-x-1 sm:space-x-2 pointer-events-auto">
-          {onToggleFullscreen && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={onToggleFullscreen}
-              className="rounded-lg sm:rounded-xl h-8 w-8 sm:h-10 sm:w-10 bg-background/90 backdrop-blur-md border-border/50 text-[#FFCA1A] hover:bg-accent"
-              title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen Arena'}
-            >
-              {isFullscreen ? (
-                <Minimize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#FFCA1A]" />
-              ) : (
-                <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#FFCA1A]" />
-              )}
-            </Button>
-          )}
-
           <Button
             variant="outline"
             size="icon"
