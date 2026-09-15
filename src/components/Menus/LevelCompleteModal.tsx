@@ -8,6 +8,7 @@ import { GameTelemetry, LevelConfig } from '../../game/types';
 import { RewardService, ClaimTicket } from '../../lib/rewards/RewardService';
 import { NimiqWalletAccount, NimiqWalletService } from '../../lib/nimiq/NimiqWalletService';
 import { StorageService } from '../../lib/persistence/StorageService';
+import { LeaderboardService } from '../../lib/nimiq/LeaderboardService';
 
 interface LevelCompleteModalProps {
   open: boolean;
@@ -63,7 +64,20 @@ export const LevelCompleteModal: React.FC<LevelCompleteModalProps> = ({
       ticket.nimReward,
       ticket.energyReward
     );
-  }, [open, telemetry, level]);
+
+    // Sync score to live leaderboard if wallet is connected
+    if (wallet && wallet.isConnected && wallet.address && wallet.address.startsWith('NQ')) {
+      LeaderboardService.submitScore({
+        playerAddress: wallet.formattedAddress || wallet.address,
+        displayName: wallet.label,
+        score: telemetry.score,
+        combo: telemetry.maxCombo,
+        accuracy: Math.round(telemetry.accuracy),
+        timeSec: Math.round(telemetry.elapsedSeconds),
+        isDaily: level.id === 1000,
+      }).catch((err) => console.warn('Live leaderboard submission error:', err));
+    }
+  }, [open, telemetry, level, wallet]);
 
   if (!open || !telemetry || !claimTicket) return null;
 
