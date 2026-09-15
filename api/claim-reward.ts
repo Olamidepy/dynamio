@@ -91,30 +91,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 4. Broadcast on live Nimiq network via RPC
     let broadcasted = false;
-    try {
-      const rpcRes = await fetch('https://rpc.nimiqwatch.com', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'sendRawTransaction',
-          params: [rawHex],
-          id: 1,
-        }),
-      });
-      if (rpcRes.ok) {
-        const json = (await rpcRes.json()) as any;
-        if (json.result) {
-          broadcasted = true;
-        }
-      }
-    } catch (broadcastErr) {
-      console.warn('Direct broadcast error:', broadcastErr);
+    let confirmedTxHash = tx.hash();
+
+    const rpcRes = await fetch('https://rpc.nimiqwatch.com', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'sendRawTransaction',
+        params: [rawHex],
+        id: 1,
+      }),
+    });
+
+    if (!rpcRes.ok) {
+      throw new Error(`Nimiq RPC HTTP ${rpcRes.status}: ${rpcRes.statusText}`);
+    }
+
+    const json = (await rpcRes.json()) as any;
+    if (json.error) {
+      const errMsg = json.error.data || json.error.message || 'Transaction rejected by Nimiq network';
+      throw new Error(`RPC Error: ${errMsg}`);
+    }
+
+    if (json.result && json.result.data) {
+      broadcasted = true;
+      confirmedTxHash = json.result.data;
+    } else {
+      throw new Error('Nimiq RPC did not return a confirmed transaction hash');
     }
 
     return res.status(200).json({
       success: true,
-      txHash,
+      txHash: confirmedTxHash,
       rawHex,
       broadcasted,
       treasuryAddress: treasuryAddress.toUserFriendlyAddress(),

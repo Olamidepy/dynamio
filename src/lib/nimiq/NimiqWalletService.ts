@@ -1,11 +1,12 @@
 import { init } from '@nimiq/mini-app-sdk';
+import HubApi from '@nimiq/hub-api';
 import { NimiqProfileService } from './NimiqProfileService';
 
 export interface NimiqWalletAccount {
   address: string;
   formattedAddress: string;
-  label?: string; // e.g. "Red Address"
-  moniker?: string; // e.g. "Speed Striker"
+  label?: string; // Official scraped name
+  moniker?: string; // Official Nimiq 3-word name
   colorName?: string; // e.g. "Red"
   avatarDataUrl?: string; // Authentic SVG data URL
   balanceNim: number;
@@ -142,10 +143,10 @@ export class NimiqWalletService {
     return null;
   }
 
-  private enrichWithProfile(address: string) {
+  private enrichWithProfile(address: string, customLabel?: string) {
     if (!address) return;
-    const profile = NimiqProfileService.getProfile(address);
-    if (!this.account.label) this.account.label = profile.label;
+    const profile = NimiqProfileService.getProfile(address, customLabel);
+    if (!this.account.label || customLabel) this.account.label = customLabel || profile.label;
     if (!this.account.moniker) this.account.moniker = profile.moniker;
     if (!this.account.colorName) this.account.colorName = profile.colorName;
     if (profile.avatarDataUrl && !this.account.avatarDataUrl) {
@@ -164,12 +165,24 @@ export class NimiqWalletService {
     const saved = localStorage.getItem('dynamio_wallet');
     if (saved) {
       try {
-        this.account = { ...this.account, ...JSON.parse(saved) };
-        if (this.account.address) {
-          this.enrichWithProfile(this.account.address);
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.address && parsed.address.startsWith('NQ') && !parsed.address.startsWith('NQDYN')) {
+          this.account = { ...this.account, ...parsed };
+          if (this.account.address) {
+            this.enrichWithProfile(this.account.address, this.account.label);
+            this.fetchOnChainBalance(this.account.address).then((bal) => {
+              if (bal !== null) {
+                this.account.balanceNim = bal;
+                this.saveSession();
+              }
+            });
+          }
+        } else {
+          // Clear any old synthetic demo session
+          localStorage.removeItem('dynamio_wallet');
         }
       } catch (e) {
-        console.error('Failed to restore wallet', e);
+        localStorage.removeItem('dynamio_wallet');
       }
     }
   }
@@ -192,20 +205,20 @@ export class NimiqWalletService {
   }
 
   /**
-   * Directly sets the active user's Nimiq address, queries on-chain balance & profile
+   * Sets the active user's Nimiq address, queries on-chain balance & profile
    */
-  public async setAddress(rawAddress: string): Promise<NimiqWalletAccount> {
+  public async setAddress(rawAddress: string, customLabel?: string): Promise<NimiqWalletAccount> {
     const clean = rawAddress.replace(/\s+/g, '').toUpperCase();
     if (!clean.startsWith('NQ')) {
       throw new Error('Invalid Nimiq address format. Must start with NQ');
     }
     const liveBal = await this.fetchOnChainBalance(clean);
-    const profile = NimiqProfileService.getProfile(clean);
+    const profile = NimiqProfileService.getProfile(clean, customLabel);
 
     this.account = {
       address: clean,
       formattedAddress: this.formatAddress(clean),
-      label: profile.label,
+      label: customLabel || profile.label,
       moniker: profile.moniker,
       colorName: profile.colorName,
       avatarDataUrl: profile.avatarDataUrl,
@@ -214,7 +227,7 @@ export class NimiqWalletService {
       isMiniApp: this.isMiniAppReady,
     };
 
-    this.enrichWithProfile(clean);
+    this.enrichWithProfile(clean, customLabel);
     this.saveSession();
     return this.account;
   }
@@ -223,15 +236,17 @@ export class NimiqWalletService {
    * Connects via official Nimiq Hub (chooseAddress)
    */
   public async connectViaHub(): Promise<NimiqWalletAccount> {
-    const win = window as any;
-    if (win.HubApi) {
-      const hub = new win.HubApi('https://hub.nimiq.com');
+    try {
+      const hub = new HubApi('https://hub.nimiq.com');
       const res = await hub.chooseAddress({ appName: 'Dynamio' });
       if (res && res.address) {
-        return this.setAddress(res.address);
+        return await this.setAddress(res.address, res.label);
       }
+    } catch (e: any) {
+      console.warn('Nimiq Hub connection cancelled or failed:', e);
+      throw e;
     }
-    throw new Error('Nimiq Hub is not loaded yet');
+    return this.account;
   }
 
   /**
@@ -246,41 +261,8 @@ export class NimiqWalletService {
       if (liveAcc) return liveAcc;
     }
 
-    // 2. Try Nimiq Hub if available
-    const win = window as any;
-    if (win.HubApi) {
-      try {
-        const hubAcc = await this.connectViaHub();
-        if (hubAcc) return hubAcc;
-      } catch (hubErr) {
-        console.warn('Hub selection cancelled or closed:', hubErr);
-      }
-    }
-
-    // 3. Browser check for legacy/webview provider
-    if (win.nimiq && win.nimiq.requestAddress) {
-      try {
-        const res = await win.nimiq.requestAddress();
-        if (res && res.address) {
-          return this.setAddress(res.address);
-        }
-      } catch (err) {
-        console.warn('Provider connect fallback:', err);
-      }
-    }
-
-    // 4. Standalone web arcade wallet (if user already had an address, refresh it)
-    if (this.account.address && this.account.address.startsWith('NQ')) {
-      const liveBal = await this.fetchOnChainBalance(this.account.address);
-      if (liveBal !== null) this.account.balanceNim = liveBal;
-      this.account.isConnected = true;
-      this.enrichWithProfile(this.account.address);
-      this.saveSession();
-      return this.account;
-    }
-
-    // Otherwise prompt setAddress via modal
-    return this.account;
+    // 2. Official Nimiq Hub connection
+    return await this.connectViaHub();
   }
 
   public disconnect() {
@@ -361,19 +343,21 @@ export class NimiqWalletService {
 
   /**
    * Sends or escrows NIM for challenge entry
-   * If running inside Nimiq Pay, triggers the native mobile payment approval sheet!
+   * Dispatches a live on-chain transaction via Nimiq Pay or official Nimiq Hub!
    */
   public async sendTransaction(recipient: string, nimAmount: number): Promise<{ success: boolean; txHash: string }> {
     if (!this.account.isConnected) {
       throw new Error('Wallet not connected');
     }
 
-    // If inside Nimiq Pay Mini App, use native sendBasicTransaction
+    const cleanRecipient = recipient.replace(/\s+/g, '').toUpperCase();
+    const lunas = Math.round(nimAmount * 1e5); // 1 NIM = 100,000 Lunas
+
+    // 1. If inside Nimiq Pay Mini App, use native sendBasicTransaction
     if (this.isMiniAppReady && this.nimiqProvider && this.nimiqProvider.sendBasicTransaction) {
       try {
-        const lunas = Math.round(nimAmount * 1e5); // 1 NIM = 100,000 Lunas
         const res = await this.nimiqProvider.sendBasicTransaction({
-          recipient,
+          recipient: cleanRecipient,
           value: lunas,
         });
 
@@ -381,8 +365,10 @@ export class NimiqWalletService {
           throw new Error((res as any).error?.message || 'Transaction was cancelled or failed in Nimiq Pay');
         }
 
-        const txHash = typeof res === 'string' ? res : '0x' + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-        this.account.balanceNim = Number(Math.max(0, this.account.balanceNim - nimAmount).toFixed(4));
+        const txHash = typeof res === 'string' ? res : (res as any)?.hash || (res as any)?.transactionHash || 'tx_confirmed';
+        // Refresh on-chain balance
+        const liveBal = await this.fetchOnChainBalance(this.account.address);
+        if (liveBal !== null) this.account.balanceNim = liveBal;
         this.saveSession();
         return { success: true, txHash };
       } catch (err: any) {
@@ -391,20 +377,35 @@ export class NimiqWalletService {
       }
     }
 
-    // Web Fallback: Deduct from local wallet
-    if (this.account.balanceNim < nimAmount) {
-      throw new Error('Insufficient balance');
+    // 2. Web / Mobile browser: Official Nimiq Hub Checkout (Live On-Chain Transaction)
+    try {
+      const hub = new HubApi('https://hub.nimiq.com');
+      const result = await hub.checkout({
+        appName: 'Dynamio Arena',
+        recipient: cleanRecipient,
+        value: lunas,
+        shopLogoUrl: `${window.location.origin}/icon-192.png`,
+      });
+
+      const txHash = (result as any)?.hash || (result as any)?.transactionHash || 'tx_confirmed';
+
+      // Refresh on-chain balance after checkout confirmation
+      setTimeout(async () => {
+        const liveBal = await this.fetchOnChainBalance(this.account.address);
+        if (liveBal !== null) {
+          this.account.balanceNim = liveBal;
+          this.saveSession();
+        }
+      }, 1500);
+
+      return {
+        success: true,
+        txHash,
+      };
+    } catch (err: any) {
+      console.error('Nimiq Hub checkout transaction failed:', err);
+      throw err;
     }
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    this.account.balanceNim = Number(Math.max(0, this.account.balanceNim - nimAmount).toFixed(4));
-    this.saveSession();
-
-    const txHash = '0x' + Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-    return {
-      success: true,
-      txHash,
-    };
   }
 
   public formatAddress(raw: string): string {

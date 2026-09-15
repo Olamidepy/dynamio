@@ -128,6 +128,11 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   const thirdPrize = Math.round(totalPool * 0.167); // 16.7% = 10 NIM for 60
 
   const handleCreateChallenge = async () => {
+    if (!wallet.isConnected) {
+      onConnectWallet();
+      return;
+    }
+
     const targetLvl = LEVELS.find((l) => l.id === selectedLevelId) || LEVELS[0];
 
     // If inside Nimiq Pay mini app with sufficient balance, execute directly
@@ -150,6 +155,11 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   };
 
   const handleJoinChallenge = async (challenge: OpenChallenge) => {
+    if (!wallet.isConnected) {
+      onConnectWallet();
+      return;
+    }
+
     const targetLvl = LEVELS.find((l) => l.id === challenge.levelId) || LEVELS[0];
 
     // If inside Nimiq Pay mini app with sufficient balance, execute directly
@@ -202,35 +212,21 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   };
 
   const handleHubCheckout = async (fee: number) => {
-    const win = window as any;
-    if (!win.HubApi) {
-      alert('Nimiq Hub is loading. You can also tap "Open in Nimiq Pay" below.');
-      return;
-    }
-
     setIsHubProcessing(true);
     try {
-      const hub = new win.HubApi('https://hub.nimiq.com');
-      const cleanTreasury = ESCROW_TREASURY_ADDRESS.replace(/\s+/g, '').toUpperCase();
-      const lunas = Math.round(fee * 1e5);
-
-      await hub.checkout({
-        appName: 'Dynamio Arena',
-        recipient: cleanTreasury,
-        value: lunas,
-        shopLogoUrl: `${window.location.origin}/icon-192.png`,
-      });
-
-      if (pendingPayment) {
-        if (pendingPayment.isCreate) {
-          finishCreateChallenge(pendingPayment.level, pendingPayment.entryFee);
-        } else if (pendingPayment.challenge) {
-          finishJoinChallenge(pendingPayment.challenge);
+      const res = await NimiqWalletService.getInstance().sendTransaction(ESCROW_TREASURY_ADDRESS, fee);
+      if (res.success) {
+        if (pendingPayment) {
+          if (pendingPayment.isCreate) {
+            finishCreateChallenge(pendingPayment.level, pendingPayment.entryFee);
+          } else if (pendingPayment.challenge) {
+            finishJoinChallenge(pendingPayment.challenge);
+          }
         }
       }
     } catch (e: any) {
-      console.warn('Hub checkout error:', e);
-      alert(e.message || 'Payment was cancelled in Nimiq Hub.');
+      console.warn('Payment failed/cancelled:', e);
+      alert(e.message || 'Payment was cancelled or failed in Nimiq Hub.');
     } finally {
       setIsHubProcessing(false);
     }

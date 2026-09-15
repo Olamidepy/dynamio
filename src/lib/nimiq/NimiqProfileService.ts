@@ -18,20 +18,20 @@ export class NimiqProfileService {
   /**
    * Generates or derives the human-friendly Nimiq profile info from an address
    */
-  public static getProfile(rawAddress: string): NimiqUserProfile {
+  public static getProfile(rawAddress: string, hubLabel?: string): NimiqUserProfile {
     const clean = (rawAddress || '').replace(/\s+/g, '').toUpperCase();
     if (!clean.startsWith('NQ')) {
       return {
         address: clean,
         formattedAddress: rawAddress,
-        label: 'Anonymous Player',
-        moniker: 'Arcade Contender',
+        label: hubLabel || 'Nimiq User',
+        moniker: '',
         colorName: 'Gold',
       };
     }
 
     let colorName = 'Gold';
-    let moniker = 'Speed Striker';
+    let moniker = '';
     try {
       colorName = getBackgroundColorName(clean) || 'Gold';
     } catch {
@@ -39,9 +39,9 @@ export class NimiqProfileService {
     }
 
     try {
-      moniker = getIdenticonMoniker(clean) || 'Speed Striker';
+      moniker = getIdenticonMoniker(clean) || '';
     } catch {
-      moniker = 'Speed Striker';
+      moniker = '';
     }
 
     const cachedDataUrl = avatarCache.get(clean) || localStorage.getItem(`nim_pfp_${clean}`) || undefined;
@@ -49,8 +49,8 @@ export class NimiqProfileService {
     return {
       address: clean,
       formattedAddress: this.formatAddress(clean),
-      label: `${colorName} Address`,
-      moniker,
+      label: hubLabel || moniker || `${colorName} Address`,
+      moniker: moniker || `${colorName} Address`,
       colorName,
       avatarDataUrl: cachedDataUrl,
     };

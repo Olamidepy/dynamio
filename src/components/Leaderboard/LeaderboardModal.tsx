@@ -52,10 +52,11 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onOpen
   }, [open]);
 
   // Calculate user profile details
-  const userAddress = account.formattedAddress || 'NQ25 DYN4 M10X 8VMB J2P3 9G0E 7FL4';
-  const userProfile = NimiqProfileService.getProfile(userAddress);
-  const userDisplayName = account.label || userProfile.label;
-  const userMoniker = account.moniker || userProfile.moniker;
+  const isUserConnected = account.isConnected && account.address && account.address.startsWith('NQ');
+  const userAddress = isUserConnected ? account.formattedAddress : '';
+  const userProfile = isUserConnected ? NimiqProfileService.getProfile(account.address, account.label) : null;
+  const userDisplayName = isUserConnected ? (account.label || userProfile?.label || 'Your Account') : 'Guest Contender';
+  const userMoniker = isUserConnected ? (account.moniker || userProfile?.moniker || '') : '';
 
   // Build base entries with authentic derived Nimiq account names
   const baseSeeds = tab === 'global' ? RAW_GLOBAL_SEEDS : RAW_DAILY_SEEDS;
@@ -69,7 +70,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onOpen
   
   const effectiveUserScore = Math.max(userScore, 9850);
 
-  const userEntry: LeaderboardEntry = {
+  const userEntry: LeaderboardEntry | null = isUserConnected ? {
     rank: 1, // dynamically calculated below
     playerAddress: userAddress,
     displayName: userDisplayName,
@@ -79,17 +80,17 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onOpen
     timeSec: 45,
     rewardNim: effectiveUserScore > 20000 ? 5.0 : 2.0,
     isDaily: tab === 'daily',
-  };
+  } : null;
 
-  // Add user and sort
-  const combined = [...baseEntries, userEntry].sort((a, b) => b.score - a.score);
+  // Add user and sort if connected
+  const combined = userEntry ? [...baseEntries, userEntry].sort((a, b) => b.score - a.score) : baseEntries;
   // Assign ranks
   const rankedEntries = combined.map((entry, idx) => ({
     ...entry,
     rank: idx + 1,
   }));
 
-  const currentUserRank = rankedEntries.find((e) => e.playerAddress === userAddress)?.rank || 1;
+  const currentUserRank = userEntry ? (rankedEntries.find((e) => e.playerAddress === userAddress)?.rank || 1) : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -112,40 +113,63 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onOpen
         </DialogHeader>
 
         {/* 🌟 Current Player Standing Card with Nimiq PFP & Scraped Name */}
-        <div className="rounded-xl border border-[#FFCA1A]/40 bg-[#FFCA1A]/5 p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center space-x-3 min-w-0">
-            {/* Nimiq Wallet Identicon PFP */}
-            <NimiqIdenticon address={userAddress} size={44} showBorder />
-            <div className="min-w-0">
-              <div className="flex items-center space-x-2">
-                <span className="font-bold text-sm text-foreground truncate">
-                  {userDisplayName}
-                </span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FFCA1A]/20 text-[#FFCA1A] border border-[#FFCA1A]/30 shrink-0">
-                  Rank #{currentUserRank}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[10px] text-primary font-medium">
-                  {userMoniker}
-                </span>
-                <span className="text-muted-foreground text-[10px]">•</span>
-                <p className="font-mono text-[11px] text-muted-foreground truncate">
-                  {userAddress.slice(0, 19)}...
-                </p>
+        {isUserConnected ? (
+          <div className="rounded-xl border border-[#FFCA1A]/40 bg-[#FFCA1A]/5 p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center space-x-3 min-w-0">
+              {/* Nimiq Wallet Identicon PFP */}
+              <NimiqIdenticon address={userAddress} size={44} showBorder />
+              <div className="min-w-0">
+                <div className="flex items-center space-x-2">
+                  <span className="font-bold text-sm text-foreground truncate">
+                    {userDisplayName}
+                  </span>
+                  {currentUserRank && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FFCA1A]/20 text-[#FFCA1A] border border-[#FFCA1A]/30 shrink-0">
+                      Rank #{currentUserRank}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  {userMoniker && (
+                    <span className="text-[10px] text-primary font-medium truncate">
+                      {userMoniker}
+                    </span>
+                  )}
+                  <span className="text-muted-foreground text-[10px]">•</span>
+                  <p className="font-mono text-[11px] text-muted-foreground truncate">
+                    {userAddress.slice(0, 19)}...
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="text-right shrink-0">
-            <span className="text-[10px] uppercase font-semibold text-muted-foreground block">
-              Dyno Score
-            </span>
-            <span className="font-heading font-extrabold text-base sm:text-lg text-primary block">
-              {effectiveUserScore.toLocaleString()}
-            </span>
+            <div className="text-right shrink-0">
+              <span className="text-[10px] uppercase font-semibold text-muted-foreground block">
+                Dyno Score
+              </span>
+              <span className="font-heading font-extrabold text-base sm:text-lg text-primary block">
+                {effectiveUserScore.toLocaleString()}
+              </span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-xl border border-border bg-muted/20 p-3.5 sm:p-4 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <span className="font-semibold text-xs text-foreground block">
+                Wallet Not Connected
+              </span>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Connect your Nimiq wallet to record scores and claim leaderboard prizes.
+              </p>
+            </div>
+            <button
+              onClick={() => NimiqWalletService.getInstance().connectViaHub().catch(() => {})}
+              className="px-3 py-1.5 rounded-lg bg-[#FFCA1A] text-black font-bold text-xs shrink-0 hover:bg-[#FFCA1A]/90 transition-colors"
+            >
+              Connect Wallet
+            </button>
+          </div>
+        )}
 
         {/* Tab Switcher */}
         <div className="grid grid-cols-2 rounded-lg bg-muted p-1 border border-border/40">

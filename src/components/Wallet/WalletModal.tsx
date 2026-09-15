@@ -161,14 +161,14 @@ export const WalletModal: React.FC<WalletModalProps> = ({
               {isEditingAddress && (
                 <div className="mt-3 pt-3 border-t border-border/40 space-y-2">
                   <label className="text-[11px] text-muted-foreground font-medium block">
-                    Paste your Nimiq Address:
+                    Enter your Nimiq Address:
                   </label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       value={manualAddress}
                       onChange={(e) => setManualAddress(e.target.value)}
-                      placeholder="NQ39 NN4C GDNQ TFT4..."
+                      placeholder="NQ..."
                       className="flex-1 bg-background border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-[#FFCA1A]"
                     />
                     <Button
@@ -182,20 +182,17 @@ export const WalletModal: React.FC<WalletModalProps> = ({
                   </div>
                   {addressError && <p className="text-[11px] text-red-500">{addressError}</p>}
 
-                  {/* Quick Select Buttons */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    <button
-                      onClick={() => handleSetManual('NQ39 NN4C GDNQ TFT4 EYCX C6TF KM4B 17SG N229')}
-                      className="text-[10px] px-2 py-1 rounded bg-[#FFCA1A]/10 text-[#FFCA1A] border border-[#FFCA1A]/30 hover:bg-[#FFCA1A]/20 transition-colors"
+                  <div className="pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleHubConnect}
+                      disabled={isConnecting}
+                      className="w-full text-xs font-semibold"
                     >
-                      Use Red Address (NQ39...)
-                    </button>
-                    <button
-                      onClick={() => handleSetManual('NQ51 2GCM 2F0A P92H VN8H 9TL1 DUSP 1FSG CDDV')}
-                      className="text-[10px] px-2 py-1 rounded bg-muted text-muted-foreground hover:text-foreground border border-border transition-colors"
-                    >
-                      Use Personal (NQ51...)
-                    </button>
+                      <Wallet className="w-3.5 h-3.5 mr-1.5 text-[#FFCA1A]" />
+                      <span>Choose Account in Nimiq Hub</span>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -204,7 +201,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
             <div className="p-3 rounded-xl bg-muted/40 border border-border/40 flex items-start space-x-2 text-xs text-muted-foreground">
               <ShieldCheck className="w-4 h-4 text-[#FFCA1A] shrink-0 mt-0.5" />
               <span>
-                Rewards cleared in solo levels will be disbursed directly from Game Treasury to this address.
+                Verified Nimiq wallet connected. Solo campaign rewards are sent directly to this address.
               </span>
             </div>
 
@@ -213,72 +210,60 @@ export const WalletModal: React.FC<WalletModalProps> = ({
               onClick={handleDisconnect}
               className="w-full rounded-xl py-2 text-xs text-red-500 border-red-500/30 hover:bg-red-500/10 space-x-1.5"
             >
-              <LogOut className="w-3.5 h-3.5 text-[#FFCA1A]" />
+              <LogOut className="w-3.5 h-3.5" />
               <span>Disconnect Wallet</span>
             </Button>
           </div>
         ) : (
           <div className="space-y-4 py-2">
             <p className="text-xs text-muted-foreground">
-              Connect your Nimiq address to receive automated solo payouts and participate in live on-chain arena matches.
+              Connect your Nimiq wallet to receive automated solo payouts and participate in live on-chain arena matches.
             </p>
 
-            {/* Paste Address directly */}
-            <div className="bg-muted/40 p-3.5 rounded-xl border border-border/40 space-y-2.5 text-left">
+            {/* Primary Action: Official Nimiq Hub Connect */}
+            <Button
+              size="lg"
+              onClick={handleHubConnect}
+              disabled={isConnecting}
+              className="w-full h-12 text-sm font-bold bg-[#FFCA1A] text-black hover:bg-[#FFCA1A]/90 flex items-center justify-center space-x-2 shadow-md transition-all active:scale-98"
+            >
+              <Wallet className="w-4 h-4 text-black" />
+              <span>Connect with Nimiq Hub</span>
+            </Button>
+
+            <div className="relative my-3">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border/60" />
+              </div>
+              <div className="relative flex justify-center text-[10px] uppercase">
+                <span className="bg-card px-2 text-muted-foreground font-medium">Or enter address manually</span>
+              </div>
+            </div>
+
+            {/* Manual Address Input */}
+            <div className="bg-muted/40 p-3.5 rounded-xl border border-border/40 space-y-2 text-left">
               <label className="text-[11px] text-muted-foreground font-medium block">
-                Enter your Nimiq Address:
+                Nimiq Wallet Address:
               </label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={manualAddress}
                   onChange={(e) => setManualAddress(e.target.value)}
-                  placeholder="NQ39 NN4C GDNQ TFT4..."
+                  placeholder="NQ..."
                   className="flex-1 bg-background border border-border rounded-lg px-2.5 py-2 text-xs text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-[#FFCA1A]"
                 />
                 <Button
                   size="sm"
                   onClick={() => handleSetManual()}
                   disabled={isConnecting || !manualAddress.trim()}
-                  className="text-xs px-3"
+                  className="text-xs px-3 font-semibold"
                 >
                   Connect
                 </Button>
               </div>
               {addressError && <p className="text-[11px] text-red-500">{addressError}</p>}
-
-              {/* Quick Select Buttons */}
-              <div className="space-y-1 pt-1">
-                <span className="text-[10px] text-muted-foreground block">Quick Connect:</span>
-                <div className="flex flex-col gap-1.5">
-                  <button
-                    onClick={() => handleSetManual('NQ39 NN4C GDNQ TFT4 EYCX C6TF KM4B 17SG N229')}
-                    className="text-left text-xs p-2 rounded-lg bg-background/80 hover:bg-muted/40 border border-[#FFCA1A]/30 flex items-center justify-between transition-colors"
-                  >
-                    <span className="font-semibold text-foreground">Red Address (NQ39...)</span>
-                    <span className="text-[10px] text-[#FFCA1A] font-bold">1,765 NIM</span>
-                  </button>
-                  <button
-                    onClick={() => handleSetManual('NQ51 2GCM 2F0A P92H VN8H 9TL1 DUSP 1FSG CDDV')}
-                    className="text-left text-xs p-2 rounded-lg bg-background/80 hover:bg-muted/40 border border-border flex items-center justify-between transition-colors"
-                  >
-                    <span className="font-semibold text-foreground">Personal Wallet (NQ51...)</span>
-                    <span className="text-[10px] text-muted-foreground">Mainnet</span>
-                  </button>
-                </div>
-              </div>
             </div>
-
-            {/* Connect via Nimiq Hub */}
-            <Button
-              variant="outline"
-              onClick={handleHubConnect}
-              disabled={isConnecting}
-              className="w-full py-2.5 text-xs font-semibold border-border/60 space-x-2"
-            >
-              <Wallet className="w-4 h-4 text-[#FFCA1A]" />
-              <span>Connect with Nimiq Hub</span>
-            </Button>
           </div>
         )}
       </DialogContent>
