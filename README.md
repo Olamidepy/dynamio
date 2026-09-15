@@ -4,16 +4,17 @@
 
 ![Dynamio Banner](/public/DynamioArtboard%201%20copy.png)
 
-**A Next-Gen 3D Zuma-Style Chain Reaction Arcade Game Powered by WebGL and the Nimiq Ecosystem.**
+**A Next-Gen 3D Zuma-Style Chain Reaction Arcade Game Powered by WebGL and the Nimiq 2.0 Albatross Ecosystem.**
 
 [![React](https://img.shields.io/badge/React-18.3.1-61dafb?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6.3-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Three.js](https://img.shields.io/badge/Three.js-r170-black?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4.17-38bdf8?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Vite](https://img.shields.io/badge/Vite-6.0.1-646cff?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Nimiq](https://img.shields.io/badge/Nimiq-Mini_App-e5a910?style=for-the-badge&logo=bitcoin&logoColor=black)](https://nimiq.com/)
+[![Nimiq 2.0 Albatross](https://img.shields.io/badge/Nimiq_2.0-Albatross_Mainnet-e5a910?style=for-the-badge&logo=bitcoin&logoColor=black)](https://nimiq.com/)
+[![Nimiq Pay](https://img.shields.io/badge/Nimiq_Pay-Native_In--App-260146?style=for-the-badge)](https://nimiq.com/)
 
-[Play Demo](http://localhost:3000) • [Arcade Campaign](#arcade-campaign-stages) • [Architecture](#architecture--technical-design) • [Controls](#controls--shortcuts)
+[Play Demo](http://localhost:3000) • [Arcade Campaign](#arcade-campaign-stages) • [Nimiq 2.0 Integration](#nimiq-20-albatross--blockchain-architecture) • [Leaderboard](#live-zero-dummy-global-leaderboard) • [Architecture](#architecture--technical-design) • [Controls](#controls--shortcuts)
 
 </div>
 
@@ -24,10 +25,17 @@
 - [Core Gameplay Mechanics](#core-gameplay-mechanics)
 - [Key Features](#key-features)
 - [Arcade Campaign Stages](#arcade-campaign-stages)
+- [Nimiq 2.0 Albatross & Blockchain Architecture](#nimiq-20-albatross--blockchain-architecture)
+  - [Mainnet Treasury & Automated Payout Pipeline](#mainnet-treasury--automated-payout-pipeline)
+  - [Native Nimiq Pay In-App Bridge & Nimiq Hub Connect](#native-nimiq-pay-in-app-bridge--nimiq-hub-connect)
+  - [Authentic Profiles & Nimiq Identicons](#authentic-profiles--nimiq-identicons)
+- [Live Zero-Dummy Global Leaderboard](#live-zero-dummy-global-leaderboard)
+- [Serverless API & Treasury Endpoints](#serverless-api--treasury-endpoints)
 - [Architecture & Technical Design](#architecture--technical-design)
+  - [Project Directory Structure](#project-directory-structure)
+  - [Spline Trajectory & Arc-Length Parameterization](#spline-trajectory--arc-length-parameterization)
+  - [Single Persistent Canvas Architecture](#single-persistent-canvas-architecture)
 - [Design System & UI Conventions](#design-system--ui-conventions)
-- [Nimiq Blockchain Integration](#nimiq-blockchain-integration)
-- [Project Directory Structure](#project-directory-structure)
 - [Getting Started](#getting-started)
 - [Controls & Shortcuts](#controls--shortcuts)
 - [License](#license)
@@ -36,9 +44,9 @@
 
 ## Overview
 
-**Dynamio** is a high-performance 3D chain reaction arcade game engineered for modern web browsers and the Nimiq Mini App ecosystem. Inspired by classic sphere-matching arcades such as *Zuma* and *Luxor*, Dynamio brings the formula into real-time 3D diorama environments with dynamic perspective cameras, spline trajectory physics, reverse magnetic snap-back cascades, and non-custodial cryptographic micro-rewards in **NIM**.
+**Dynamio** is a high-performance 3D chain reaction arcade game engineered for modern web browsers, the Nimiq Mini App ecosystem, and the Nimiq Pay mobile wallet. Inspired by classic sphere-matching arcades such as *Zuma* and *Luxor*, Dynamio elevates the formula into real-time 3D diorama environments with dynamic perspective cameras, spline trajectory physics, reverse magnetic snap-back cascades, and authentic on-chain cryptocurrency payouts in **NIM** on the **Nimiq 2.0 Albatross Mainnet**.
 
-Players control a 360-degree central shooter station, launching vibrant energy spheres to match three or more contiguous colors before the ever-advancing chain breaches the golden core vortex.
+Players control a 360-degree central shooter station, launching vibrant energy spheres to match three or more contiguous colors before the advancing chain reaches the golden core vortex. Complete levels to earn real NIM micro-rewards disbursed directly from the game's automated on-chain treasury.
 
 ---
 
@@ -63,36 +71,43 @@ Players control a 360-degree central shooter station, launching vibrant energy s
 
 1. **Continuous Spline Trajectory**:
    - Energy spheres roll along smooth 3D Catmull-Rom spline curves.
-   - The queue advances progressively towards the vortex station at the center of the arena.
+   - The queue advances progressively towards the central vortex.
 
 2. **Aim & Launch**:
-   - The central cannon rotates dynamically to track player pointer / touch positions in 3D world space.
+   - The central cannon rotates dynamically to track player pointer and touch positions in 3D world space.
    - High-velocity projectile physics calculate precise spherical raycasts against queued balls.
 
 3. **Match 3+ Color Clears**:
    - Direct hits insert the fired ball into the train at the collision index.
    - Contiguous sequences of 3 or more matching colors trigger energy explosions, earning score points and combo multipliers.
 
-4. **Reverse Magnetic Snap-Back (Gaps Cascade)**:
+4. **Reverse Magnetic Snap-Back (Gap Cascades)**:
    - When a match is cleared, a gap opens in the chain.
-   - Rather than rolling forward, the separated front train segments roll **backward** along the track to meet the rear segment.
-   - If the newly connected ends match in color, they trigger an automatic magnetic combo cascade!
+   - Rather than rolling forward, separated front train segments roll **backward** along the track to meet the rear segment.
+   - If the newly connected ends match in color, they trigger an automatic magnetic combo cascade.
 
-5. **Core Vortex Defense**:
-   - If the leading sphere breaches the threshold of the central golden vortex, the vortex collapses and triggers a game over.
-   - Eliminating all spheres in the active level queue awards victory, star rankings, and NIM cryptocurrency rewards.
+5. **Core Vortex Defense & Rewards**:
+   - If the leading sphere breaches the threshold of the central golden vortex, the vortex collapses, ending the run.
+   - Eliminating all spheres in the active level queue awards victory, star rankings, and automated on-chain NIM cryptocurrency rewards.
 
 ---
 
 ## Key Features
 
 - **Real-Time 3D Diorama Engine**: Built directly on Three.js (r170) with customized PBR materials, dynamic point lights, high-performance spline interpolation, and an adaptive camera viewport.
-- **Continuous Translational Level Previews**: A 1:1 square diorama carousel featuring real-time moving 2D canvas simulations of all 7 campaign stages in continuous translational motion loop.
-- **Dynamic Lock Progression**: Visual progression engine tracking player progress. Uncompleted stages show frosted glass locks while completed stages display high scores, star achievements, and direct play options.
-- **Deterministic Daily Challenge**: Generates a unique daily trial seeded from the current UTC date string (`YYYY-MM-DD`), allowing worldwide players to compete on identical daily layouts.
-- **Non-Custodial Nimiq Wallet**: Built-in wallet integration with address generator, balance tracker, and cryptographic mock transaction signing for arcade rewards.
-- **Strict `#020202` & shadcn/ui Design**: Engineered to match official shadcn/ui component standards, deep `#020202` black background, and unified `#FFCA1A` golden yellow accents.
-- **Ultra-Fast Performance**: Zero external heavy game engines; runs at a locked 60 FPS on desktop and mobile devices with minimal battery footprint.
+- **Nimiq 2.0 Albatross Mainnet Rewards**: Instant solo payouts executed directly on the live Nimiq 2.0 Proof-of-Stake Mainnet (`networkId: 24`). Payouts are verifiable on the public block explorer.
+- **Dual-Mode Nimiq Connection (Nimiq Pay & Hub)**:
+  - **Native In-App Mini App**: Automatic zero-click bridge detection via `@nimiq/mini-app-sdk` when opened inside the Nimiq Pay mobile wallet (`window.nimiq`), allowing seamless transactions and account queries without redirects.
+  - **Web Hub Connect**: Official Nimiq Hub (`@nimiq/hub-api`) integration for secure non-custodial browser logins and checkout.
+  - **Nimiq Pay Deep Links**: Native `nimiq:` protocol deep link and QR code generation for one-tap mobile checkout.
+- **Authentic Nimiq Profiles & Identicons**: Automatic derivation of official 3-word animal monikers and SVG Identicons via `@nimiq/identicons` alongside real-time on-chain balance fetching.
+- **Live Zero-Dummy Global Leaderboard**: Completely purged of simulated bots and mock users. Displays only real connected devices and verified players with their authentic Nimiq address, moniker, combo, score, and accuracy.
+- **Continuous Translational Level Previews**: A 1:1 square diorama carousel featuring real-time moving 2D canvas simulations of all 7 campaign stages in a continuous translational motion loop.
+- **Dynamic Lock Progression**: Visual progression engine tracking player progress. Uncompleted stages show frosted glass locks, while completed stages display high scores, star achievements, and direct play options.
+- **Deterministic Daily Challenge**: Generates a unique daily trial seeded from the current UTC date string (`YYYY-MM-DD`), allowing worldwide players to compete on identical daily track layouts.
+- **Direct Arena Treasury Routing**: Arena and high-stakes challenge entry payments route directly to the dedicated game treasury address (`NQ81 BDH4 RKPV XMG3 T082 J84R QRPT VJEJ FUET`).
+- **Strict `#020202` & shadcn/ui Design**: Engineered to match official shadcn/ui component standards with a deep `#020202` background and unified `#FFCA1A` golden accents.
+- **Locked 60 FPS Performance**: Zero bloated game engine overhead; runs smoothly on desktop and mobile devices with minimal battery drain.
 
 ---
 
@@ -112,39 +127,121 @@ Dynamio features 7 progressive handcrafted 3D tracks:
 
 ---
 
-## Architecture & Technical Design
+## Nimiq 2.0 Albatross & Blockchain Architecture
+
+Dynamio is built specifically to showcase the speed and micro-transaction capabilities of **Nimiq 2.0 (Albatross PoS)**.
+
+### Mainnet Treasury & Automated Payout Pipeline
 
 ```
-src/
-├── game/                      # Core Game Logic & 3D Simulation
-│   ├── GameEngine.ts          # Orchestrates subsystems, tick loop, HUD callbacks
-│   ├── GameState.ts           # State machine (TITLE, LOADING, READY, PLAYING, PAUSED, etc.)
-│   ├── types.ts               # Core domain types (LevelConfig, BallColor, GameTelemetry)
-│   ├── data/
-│   │   └── levels.ts          # Spline coordinates and parameters for Stages 1-7 + Daily
-│   ├── entities/
-│   │   ├── Ball.ts            # Mesh representation, color assignment, collision radius
-│   │   ├── BallQueue.ts       # Physical queue of balls rolling along spline distances
-│   │   └── Shooter.ts         # Central cannon, aim vectors, projectile firing
-│   ├── path/
-│   │   └── SplinePath.ts      # Catmull-Rom curve sampling, arc-length lookup & binary search
-│   ├── rendering/
-│   │   ├── CameraManager.ts   # Perspective camera positioning & viewport framing
-│   │   └── SceneManager.ts    # Three.js scene, transparent background, lighting rigs
-│   └── systems/
-│       ├── AudioEngine.ts     # Synthesized Web Audio API sound effects (match, combo, shoot)
-│       ├── CollisionSystem.ts # Spherical raycast & projectile insertion math
-│       ├── ParticleSystem.ts  # Particle emitters for ball explosions and combo sparks
-│       └── ScoreSystem.ts     # Score multiplier, combo tracking, NIM reward tallying
-├── components/                # React UI Layer (shadcn/ui convention)
-│   ├── HUD/                   # In-game HUD, combo indicator, countdown timer
-│   ├── Menus/                 # MainMenu, LoadingScreen, PauseModal, LevelSelectModal
-│   ├── Sections/              # LevelPreviewSection, HowToPlaySection
-│   ├── Wallet/                # Nimiq non-custodial wallet modal
-│   └── ui/                    # Primitive shadcn components (Button, Card, Badge, Dialog)
-└── lib/
-    ├── nimiq/                 # NimiqWalletService (reactive account listener & state)
-    └── persistence/           # StorageService (Local persistence for progress & scores)
+  [ Level Completed ]
+          │
+          ▼
+  [ POST /api/claim-reward ] ──► Fetch Live Block Height (rpc.nimiqwatch.com)
+          │
+          ▼
+  [ Build Basic Tx ] ──────────► Network ID: 24 (MainAlbatross) | Fee: 0 NIM
+          │
+          ▼
+  [ Sign with Treasury Key ] ──► Dedicated KeyPair for NQ81 BDH4 RKPV XMG3 T082 J84R QRPT VJEJ FUET
+          │
+          ▼
+  [ RPC Broadcast ] ───────────► JSON-RPC `sendRawTransaction` to Nimiq 2.0 Validators
+          │
+          ▼
+  [ Return Tx Hash ] ──────────► Live verification link on https://nimiq.watch/#<hash>
+```
+
+- **Treasury Address**: `NQ81 BDH4 RKPV XMG3 T082 J84R QRPT VJEJ FUET`
+- **Network ID**: `24` (`MainAlbatross` for Mainnet 2.0, fallback `5` for `TestAlbatross`)
+- **Block Height Sync**: Dynamically queries `getBlockNumber` from live Albatross RPC nodes to set accurate transaction `validityStartHeight`.
+- **Zero-Fee Transactions**: Leverages native Nimiq 2.0 zero-fee basic transactions for instant sub-second micro-payouts.
+
+### Native Nimiq Pay In-App Bridge & Nimiq Hub Connect
+
+Dynamio implements a flexible dual-mode connection system with zero mock or simulated wallets:
+
+1. **Nimiq Pay In-App (Mobile Mini App)**:
+   - When opened inside the **Nimiq Pay** wallet app or an in-app WebView, the app automatically detects the native provider via `@nimiq/mini-app-sdk` and `window.nimiq`.
+   - Players are immediately connected with zero login clicks.
+   - Payments and balance checks run directly inside the app without external browser redirects.
+2. **Nimiq Hub (Desktop & Browser)**:
+   - Web browser players connect securely through the official `@nimiq/hub-api`.
+   - No private keys are ever handled by the game client.
+3. **Nimiq Pay Deep Links**:
+   - For desktop players wanting to pay via mobile, Dynamio generates native `nimiq:` protocol URIs paired with dynamic QR codes for instant scanning in Nimiq Pay.
+
+### Authentic Profiles & Nimiq Identicons
+
+- **3-Word Monikers**: Automatically maps any Nimiq address into its canonical human-readable 3-word name (e.g., `"Golden Swift Falcon"`).
+- **SVG Identicons**: Rendered in real-time using `@nimiq/identicons` for pixel-perfect visual identity across HUDs, wallet modals, and leaderboard ranks.
+- **On-Chain Balance Sync**: Queries `https://api.nimiq.watch/account/<address>` to display verified on-chain balances.
+
+---
+
+## Live Zero-Dummy Global Leaderboard
+
+Dynamio enforces a strict **Zero Dummy Data Policy**:
+
+- **Real Devices Only**: The leaderboard displays exclusively genuine scores submitted by connected devices and real Nimiq accounts.
+- **Dual Leaderboard Divisions**:
+  - **Campaign Mode**: Ranks players across standard campaign stage completions.
+  - **Daily Challenge**: Synchronized UTC daily trials with identical tracks for fair competitive scoring.
+- **Comprehensive Telemetry**: Tracks Player Moniker, Address, Total Score, Highest Combo (`highestCombo`), Accuracy percentage, Run Duration (`durationMs`), and NIM earned.
+- **Zero Bots**: If no runs have been recorded, clean empty states prompt players to claim the #1 spot.
+
+---
+
+## Serverless API & Treasury Endpoints
+
+Dynamio includes production-ready serverless API handlers (compatible with Vercel and local Vite dev proxy):
+
+| Endpoint | Method | Description |
+|:---|:---:|:---|
+| `/api/claim-reward` | `POST` | Builds, signs, and broadcasts an on-chain Nimiq 2.0 payout from the game treasury to the player's wallet. |
+| `/api/leaderboard` | `GET` | Fetches authentic live leaderboard records (supports `?type=daily` or `?type=campaign`). |
+| `/api/leaderboard` | `POST` | Submits verified game run telemetry with anti-tamper validations. |
+| `/api/treasury` | `GET` | Queries live balance and status for the game treasury (`NQ81 BDH4...`). |
+
+---
+
+## Architecture & Technical Design
+
+### Project Directory Structure
+
+```
+Dynamio/
+├── api/                               # Serverless API Handlers (Vercel & Vite Dev Middleware)
+│   ├── claim-reward.ts                # On-chain Nimiq 2.0 Albatross payout engine
+│   ├── leaderboard.ts                 # Live zero-dummy leaderboard storage & retrieval
+│   └── treasury.ts                    # Treasury balance & network telemetry
+├── public/                            # Static assets, branding, and sound effects
+├── src/
+│   ├── components/                    # React UI Layer (shadcn/ui convention)
+│   │   ├── HUD/                       # In-game HUD, combo streak counter, audio controls
+│   │   ├── Leaderboard/               # LeaderboardModal with live tabs & authentic Identicons
+│   │   ├── Menus/                     # MainMenu, LevelSelect, LevelCompleteModal, ChallengeModal
+│   │   ├── Sections/                  # LevelPreviewSection, HowToPlaySection
+│   │   ├── Wallet/                    # NimiqWalletModal (Nimiq Pay & Hub connect, QR codes)
+│   │   └── ui/                        # Reusable shadcn primitives (Button, Card, Badge, Dialog)
+│   ├── game/                          # Core 3D Game Engine & Simulation
+│   │   ├── GameEngine.ts              # Orchestrates game loop, tick updates, HUD callbacks
+│   │   ├── GameState.ts               # State machine (TITLE, READY, PLAYING, PAUSED, etc.)
+│   │   ├── types.ts                   # Domain types (LevelConfig, BallColor, GameTelemetry)
+│   │   ├── data/                      # levels.ts (Spline coordinates for Stages 1-7 + Daily)
+│   │   ├── entities/                  # Ball.ts, BallQueue.ts, Shooter.ts
+│   │   ├── path/                      # SplinePath.ts (Catmull-Rom arc-length sampling)
+│   │   ├── rendering/                 # CameraManager.ts, SceneManager.ts
+│   │   └── systems/                   # CollisionSystem, AudioEngine, ParticleSystem, ScoreSystem
+│   └── lib/
+│       ├── nimiq/                     # Nimiq Blockchain Services
+│       │   ├── LeaderboardService.ts  # Client service for live leaderboard sync
+│       │   ├── NimiqProfileService.ts # Moniker generation & Identicon SVG renderer
+│       │   └── NimiqWalletService.ts  # Dual-mode Nimiq Pay SDK & Hub Api orchestrator
+│       └── persistence/               # Local storage persistence for level unlocks & records
+├── index.html                         # Entry HTML with meta tags & mobile viewport config
+├── vite.config.ts                     # Vite build setup with embedded local dev API server
+└── package.json                       # Dependencies & scripts
 ```
 
 ### Spline Trajectory & Arc-Length Parameterization
@@ -163,16 +260,6 @@ Dynamio is designed under strict adherence to modern design standards:
 - **Brand Accent Line**: Straight thin yellow rectangle accents (`bg-[#FFCA1A] h-1 rounded-full`) situated beneath all major headers.
 - **Unified Golden Icons**: All application icons use `#FFCA1A` golden yellow coloring; flash/sparkle symbols are completely avoided.
 - **shadcn/ui Alignment**: Card, Dialog, Badge, and Button layouts conform to standard shadcn/ui component patterns.
-
----
-
-## Nimiq Blockchain Integration
-
-Dynamio integrates non-custodial Nimiq wallet mechanics:
-
-1. **Reactive Wallet State**: Subscribes to account updates via `NimiqWalletService`.
-2. **Arcade NIM Rewards**: Successful level completions reward micro-transactions in NIM directly deposited into the player's balance.
-3. **Daily Cryptographic Trials**: Daily challenges deterministically derive seed hashes from `Date.now()`, creating a synchronized daily board for global players.
 
 ---
 
@@ -198,11 +285,23 @@ npm install
 ### Running Locally
 
 ```bash
-# Start Vite development server
+# Start Vite development server (includes embedded live API endpoints)
 npm run dev
 ```
 
 Open your browser and navigate to `http://localhost:3000`.
+
+### Environment Configuration (Optional)
+
+You can customize the Nimiq network and treasury key via environment variables:
+
+```env
+# Optional: Set to 'test' for Nimiq 2.0 Testnet (default is Mainnet Albatross, networkId: 24)
+NIMIQ_NETWORK=main
+
+# Optional: Override treasury private key (hex)
+NIMIQ_TREASURY_KEY=your_private_key_hex_here
+```
 
 ### Building for Production
 
@@ -239,4 +338,4 @@ npm run test
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
-Developed for the **Nimiq Ecosystem**. Built with React, TypeScript, and Three.js.
+Developed for the **Nimiq Ecosystem**. Built with React, TypeScript, Three.js, and the Nimiq 2.0 Albatross blockchain.
