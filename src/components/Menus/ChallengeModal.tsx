@@ -48,40 +48,42 @@ interface OpenChallenge {
   isPrivate: boolean;
 }
 
+const ESCROW_TREASURY_ADDRESS = 'NQ07 B790 1DP1 PPQK 2P0Y JXYP QKBT 1H95 P90S';
+
 const RECENT_WINNERS = [
-  { player: '@NimiqKing', amount: 30.0, level: 'Amber Spiral', time: '12m ago' },
-  { player: '@ChainMaster', amount: 17.0, level: 'Cobalt S-Bend', time: '28m ago' },
-  { player: '@ZumaWizard', amount: 10.0, level: 'Neon Gateway', time: '1h ago' },
-  { player: '@VortexHunter', amount: 45.0, level: 'Quantum Vortex', time: '2h ago' },
+  { player: '@NimiqKing', amount: 0.45, level: 'Amber Spiral', time: '12m ago' },
+  { player: '@ChainMaster', amount: 0.25, level: 'Cobalt S-Bend', time: '28m ago' },
+  { player: '@ZumaWizard', amount: 0.15, level: 'Neon Gateway', time: '1h ago' },
+  { player: '@VortexHunter', amount: 0.75, level: 'Quantum Vortex', time: '2h ago' },
 ];
 
 const INITIAL_OPEN_CHALLENGES: OpenChallenge[] = [
   {
-    id: 'chall_amber_20',
-    creator: 'NQ72...89AB',
-    levelId: 2,
-    entryFee: 20,
-    pool: 60,
-    joinedCount: 2,
-    maxPlayers: 3,
-    isPrivate: false,
-  },
-  {
-    id: 'chall_neon_10',
+    id: 'chall_neon_005',
     creator: 'NQ33...11FF',
     levelId: 1,
-    entryFee: 10,
-    pool: 30,
+    entryFee: 0.05,
+    pool: 0.15,
     joinedCount: 1,
     maxPlayers: 3,
     isPrivate: false,
   },
   {
-    id: 'chall_cobalt_20',
+    id: 'chall_amber_010',
+    creator: 'NQ72...89AB',
+    levelId: 2,
+    entryFee: 0.1,
+    pool: 0.3,
+    joinedCount: 2,
+    maxPlayers: 3,
+    isPrivate: false,
+  },
+  {
+    id: 'chall_cobalt_025',
     creator: 'NQ91...44DD',
     levelId: 3,
-    entryFee: 20,
-    pool: 60,
+    entryFee: 0.25,
+    pool: 0.75,
     joinedCount: 2,
     maxPlayers: 3,
     isPrivate: false,
@@ -96,18 +98,18 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   onConnectWallet,
 }) => {
   const [selectedTab, setSelectedTab] = useState<string>('open');
-  const [selectedEntryFee, setSelectedEntryFee] = useState<number>(20);
-  const [selectedLevelId, setSelectedLevelId] = useState<number>(2);
+  const [selectedEntryFee, setSelectedEntryFee] = useState<number>(0.05);
+  const [selectedLevelId, setSelectedLevelId] = useState<number>(1);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [openChallenges, setOpenChallenges] = useState<OpenChallenge[]>(INITIAL_OPEN_CHALLENGES);
   const [myMatches, setMyMatches] = useState<OpenChallenge[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Pool distribution for 3 players
-  const totalPool = selectedEntryFee * 3;
-  const firstPrize = Math.round(totalPool * 0.5); // 50% = 30 NIM for 60
-  const secondPrize = Math.round(totalPool * 0.283); // 28.3% = 17 NIM for 60
-  const thirdPrize = Math.round(totalPool * 0.167); // 16.7% = 10 NIM for 60
+  const totalPool = Number((selectedEntryFee * 3).toFixed(3));
+  const firstPrize = Number((totalPool * 0.5).toFixed(3)); // 50%
+  const secondPrize = Number((totalPool * 0.283).toFixed(3)); // 28.3%
+  const thirdPrize = Number((totalPool * 0.167).toFixed(3)); // 16.7%
 
   const handleCreateChallenge = async () => {
     if (!wallet.isConnected) {
@@ -116,33 +118,38 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
     }
 
     if (wallet.balanceNim < selectedEntryFee) {
-      alert(`Insufficient NIM balance (${wallet.balanceNim.toFixed(1)} NIM). Need ${selectedEntryFee} NIM.`);
+      alert(`Insufficient NIM balance (${wallet.balanceNim.toFixed(3)} NIM). Need ${selectedEntryFee} NIM.`);
       return;
     }
 
-    // Deduct entry fee
-    await NimiqWalletService.getInstance().sendTransaction('NQ_ESCROW_CHALLENGE_POOL', selectedEntryFee);
+    try {
+      // Deduct entry fee via Nimiq Pay native transaction
+      await NimiqWalletService.getInstance().sendTransaction(ESCROW_TREASURY_ADDRESS, selectedEntryFee);
 
-    const newChall: OpenChallenge = {
-      id: `chall_${Date.now()}`,
-      creator: wallet.address ? `${wallet.address.substring(0, 4)}...${wallet.address.slice(-4)}` : 'You',
-      levelId: selectedLevelId,
-      entryFee: selectedEntryFee,
-      pool: totalPool,
-      joinedCount: 1,
-      maxPlayers: 3,
-      isPrivate,
-    };
+      const newChall: OpenChallenge = {
+        id: `chall_${Date.now()}`,
+        creator: wallet.address ? `${wallet.address.substring(0, 4)}...${wallet.address.slice(-4)}` : 'You',
+        levelId: selectedLevelId,
+        entryFee: selectedEntryFee,
+        pool: totalPool,
+        joinedCount: 1,
+        maxPlayers: 3,
+        isPrivate,
+      };
 
-    if (!isPrivate) {
-      setOpenChallenges([newChall, ...openChallenges]);
+      if (!isPrivate) {
+        setOpenChallenges([newChall, ...openChallenges]);
+      }
+      setMyMatches([newChall, ...myMatches]);
+
+      // Launch match
+      const targetLvl = LEVELS.find((l) => l.id === selectedLevelId) || LEVELS[0];
+      onOpenChange(false);
+      onStartChallengeMatch(targetLvl, selectedEntryFee);
+    } catch (err: any) {
+      console.error('Challenge creation error:', err);
+      alert(err.message || 'Payment was cancelled or rejected in Nimiq Pay');
     }
-    setMyMatches([newChall, ...myMatches]);
-
-    // Launch match
-    const targetLvl = LEVELS.find((l) => l.id === selectedLevelId) || LEVELS[1];
-    onOpenChange(false);
-    onStartChallengeMatch(targetLvl, selectedEntryFee);
   };
 
   const handleJoinChallenge = async (challenge: OpenChallenge) => {
@@ -152,15 +159,20 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
     }
 
     if (wallet.balanceNim < challenge.entryFee) {
-      alert(`Insufficient NIM balance. Need ${challenge.entryFee} NIM to join.`);
+      alert(`Insufficient NIM balance (${wallet.balanceNim.toFixed(3)} NIM). Need ${challenge.entryFee} NIM to join.`);
       return;
     }
 
-    await NimiqWalletService.getInstance().sendTransaction('NQ_ESCROW_CHALLENGE_POOL', challenge.entryFee);
+    try {
+      await NimiqWalletService.getInstance().sendTransaction(ESCROW_TREASURY_ADDRESS, challenge.entryFee);
 
-    const targetLvl = LEVELS.find((l) => l.id === challenge.levelId) || LEVELS[0];
-    onOpenChange(false);
-    onStartChallengeMatch(targetLvl, challenge.entryFee);
+      const targetLvl = LEVELS.find((l) => l.id === challenge.levelId) || LEVELS[0];
+      onOpenChange(false);
+      onStartChallengeMatch(targetLvl, challenge.entryFee);
+    } catch (err: any) {
+      console.error('Join challenge error:', err);
+      alert(err.message || 'Payment was cancelled or rejected in Nimiq Pay');
+    }
   };
 
   const handleCopyInvite = (challId: string) => {
@@ -378,7 +390,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
                     </span>
                   </div>
                   <div className="grid grid-cols-4 gap-3">
-                    {[5, 10, 20, 50].map((fee) => {
+                    {[0.05, 0.1, 0.25, 0.5].map((fee) => {
                       const isSelected = selectedEntryFee === fee;
                       return (
                         <Button
