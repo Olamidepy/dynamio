@@ -65,6 +65,7 @@ function nimiqDevApiPlugin(): Plugin {
                 return;
               }
 
+              const clean = recipient.replace(/\s+/g, '').toUpperCase();
               const rawAmount = Number(amount) || 0.1;
               const nimAmount = NETWORK_ID === 5 ? Math.min(rawAmount, 0.1) : rawAmount;
               const lunas = BigInt(Math.max(1000, Math.round(nimAmount * 1e5)));
