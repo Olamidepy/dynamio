@@ -58,23 +58,38 @@ export const WalletModal: React.FC<WalletModalProps> = ({
 
         {wallet.isConnected ? (
           <div className="space-y-4">
-            {/* Balance Card */}
-            <div className="bg-muted/40 p-4 rounded-xl border border-border/40 text-center">
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold block">
-                NIM Balance
-              </span>
-              <span className="font-heading font-black text-3xl text-foreground block mt-1">
-                {wallet.balanceNim.toFixed(2)}{' '}
-                <span className="text-[#FFCA1A] text-xl font-bold">NIM</span>
-              </span>
-              <div className="flex items-center justify-center space-x-2 mt-2">
-                <Badge variant="secondary" className="text-[10px] border-[#FFCA1A]/30 text-[#FFCA1A]">
-                  Total Claimed: {progress.totalNimClaimed.toFixed(2)} NIM
-                </Badge>
+            {/* Scraped Nimiq Account Profile Card (Nimiq Pay Style) */}
+            <div className="bg-muted/40 p-3.5 rounded-xl border border-border/40 flex items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center space-x-3 min-w-0">
+                <NimiqIdenticon address={wallet.address} size={48} showBorder />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-heading font-bold text-base text-foreground truncate">
+                      {wallet.label || 'Nimiq Account'}
+                    </span>
+                    {wallet.colorName && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-[#FFCA1A]/20 text-[#FFCA1A] border border-[#FFCA1A]/30">
+                        {wallet.colorName}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-primary font-medium truncate mt-0.5">
+                    {wallet.moniker || 'Arcade Contender'}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <span className="font-heading font-extrabold text-base text-foreground block">
+                  {wallet.balanceNim.toFixed(1)} NIM
+                </span>
+                <span className="text-[10px] text-green-500 font-semibold flex items-center justify-end gap-1 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  Live On-Chain
+                </span>
               </div>
             </div>
 
-            {/* Address Details with Nimiq Identicon */}
+            {/* Address Details */}
             <div className="bg-muted/40 p-3.5 rounded-xl border border-border/40">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] text-muted-foreground font-medium">Your Nimiq Address</span>
@@ -95,8 +110,7 @@ export const WalletModal: React.FC<WalletModalProps> = ({
                   )}
                 </button>
               </div>
-              <div className="flex items-center space-x-3 bg-background/80 p-2.5 rounded-lg border border-border/50">
-                <NimiqIdenticon address={wallet.address} size={36} className="shrink-0" />
+              <div className="bg-background/80 p-2.5 rounded-lg border border-border/50">
                 <p className="font-mono text-xs text-foreground break-all">
                   {wallet.formattedAddress}
                 </p>

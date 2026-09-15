@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { NimiqProfileService } from '../../lib/nimiq/NimiqProfileService';
 
-// Nimiq Identicon SVG generator
-// Generates the official Nimiq hexagonal avatar for any address or seed string
 export function hashStringToColor(str: string): { bg: string; fill: string; accent: string } {
   const PALETTE = [
     { bg: '#FC8702', fill: '#FFCA1A', accent: '#E9B213' }, // Gold / Amber
@@ -26,19 +25,59 @@ interface NimiqIdenticonProps {
   address: string;
   size?: number;
   className?: string;
+  showBorder?: boolean;
 }
 
 export const NimiqIdenticon: React.FC<NimiqIdenticonProps> = ({
   address,
   size = 32,
   className = '',
+  showBorder = false,
 }) => {
-  const colors = hashStringToColor(address || 'NQ00 0000 0000 0000');
+  const [avatarUrl, setAvatarUrl] = useState<string>('');
 
-  // Compute a deterministic geometric pattern based on characters
+  useEffect(() => {
+    let active = true;
+    if (address) {
+      // Check cache first for zero flicker
+      const cached = NimiqProfileService.getProfile(address).avatarDataUrl;
+      if (cached) {
+        setAvatarUrl(cached);
+      } else {
+        NimiqProfileService.loadAvatarDataUrl(address).then((url) => {
+          if (active && url) setAvatarUrl(url);
+        });
+      }
+    }
+    return () => {
+      active = false;
+    };
+  }, [address]);
+
+  const colors = hashStringToColor(address || 'NQ00 0000 0000 0000');
   const cleanAddr = (address || '').replace(/\s+/g, '');
+
+  if (avatarUrl) {
+    return (
+      <div
+        className={`relative inline-flex items-center justify-center shrink-0 overflow-hidden ${
+          showBorder ? 'ring-2 ring-primary/40 rounded-full' : ''
+        } ${className}`}
+        style={{ width: size, height: size }}
+        title={address}
+      >
+        <img
+          src={avatarUrl}
+          alt={address}
+          className="w-full h-full object-contain select-none pointer-events-none drop-shadow-xs"
+        />
+      </div>
+    );
+  }
+
+  // Deterministic geometric fallback
   const charCodeSum = cleanAddr.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const rotation = (charCodeSum % 360);
+  const rotation = charCodeSum % 360;
   const ringCount = 3 + (charCodeSum % 3);
 
   return (
@@ -80,7 +119,7 @@ export const NimiqIdenticon: React.FC<NimiqIdenticonProps> = ({
         <circle cx="50" cy="50" r="16" fill={colors.fill} />
         <circle cx="50" cy="50" r="8" fill={colors.bg} />
 
-        {/* Subtle dynamic accent dots */}
+        {/* Dynamic accent dots */}
         <g transform={`rotate(${rotation} 50 50)`} opacity="0.8">
           <circle cx="50" cy="24" r="3.5" fill="#FFFFFF" />
           <circle cx="50" cy="76" r="3.5" fill="#FFFFFF" />

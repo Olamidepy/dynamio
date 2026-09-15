@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { UserProgress } from '../../lib/persistence/StorageService';
 import { NimiqWalletAccount } from '../../lib/nimiq/NimiqWalletService';
+import { NimiqIdenticon } from '../ui/NimiqIdenticon';
 
 interface MainMenuProps {
   onPlayQuick: () => void;
@@ -97,15 +98,24 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               variant="outline"
               size="sm"
               onClick={onOpenWallet}
-              className="gap-1.5 sm:gap-2 border-border/60 text-xs font-semibold px-2.5 sm:px-3"
+              className="gap-2 border-border/60 text-xs font-semibold px-2.5 sm:px-3 h-9"
             >
-              <Wallet className="w-3.5 h-3.5 text-[#FFCA1A]" />
-              <span className="hidden xs:inline">
-                {wallet.isConnected ? `${wallet.balanceNim.toFixed(1)} NIM` : 'Connect Wallet'}
-              </span>
-              <span className="xs:hidden">
-                {wallet.isConnected ? `${wallet.balanceNim.toFixed(0)}N` : 'Connect'}
-              </span>
+              {wallet.isConnected ? (
+                <>
+                  <NimiqIdenticon address={wallet.address} size={22} className="shrink-0" />
+                  <span className="hidden xs:inline">
+                    {wallet.label ? `${wallet.label} (${wallet.balanceNim.toFixed(1)} NIM)` : `${wallet.balanceNim.toFixed(1)} NIM`}
+                  </span>
+                  <span className="xs:hidden">
+                    {wallet.balanceNim.toFixed(1)}N
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Wallet className="w-3.5 h-3.5 text-[#FFCA1A]" />
+                  <span>Connect Wallet</span>
+                </>
+              )}
             </Button>
 
             {/* Mobile Nav Toggle */}

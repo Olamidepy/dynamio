@@ -1,8 +1,13 @@
 import { init } from '@nimiq/mini-app-sdk';
+import { NimiqProfileService } from './NimiqProfileService';
 
 export interface NimiqWalletAccount {
   address: string;
   formattedAddress: string;
+  label?: string; // e.g. "Red Address"
+  moniker?: string; // e.g. "Speed Striker"
+  colorName?: string; // e.g. "Red"
+  avatarDataUrl?: string; // Authentic SVG data URL
   balanceNim: number;
   isConnected: boolean;
   isMiniApp?: boolean;
@@ -15,6 +20,9 @@ export class NimiqWalletService {
   private account: NimiqWalletAccount = {
     address: '',
     formattedAddress: '',
+    label: '',
+    moniker: '',
+    colorName: '',
     balanceNim: 0,
     isConnected: false,
     isMiniApp: false,
@@ -109,16 +117,22 @@ export class NimiqWalletService {
         const address = accounts[0];
         // Fetch real live on-chain balance
         const liveBal = await this.fetchOnChainBalance(address);
+        const profile = NimiqProfileService.getProfile(address);
 
         this.account = {
           address,
           formattedAddress: this.formatAddress(address),
+          label: profile.label,
+          moniker: profile.moniker,
+          colorName: profile.colorName,
+          avatarDataUrl: profile.avatarDataUrl,
           balanceNim: liveBal !== null ? liveBal : (this.account.balanceNim || 0),
           isConnected: true,
           isMiniApp: true,
           consensus: !!consensusResult,
           blockNumber: typeof blockResult === 'number' ? blockResult : undefined,
         };
+        this.enrichWithProfile(address);
         this.saveSession();
         return this.account;
       }
@@ -128,11 +142,32 @@ export class NimiqWalletService {
     return null;
   }
 
+  private enrichWithProfile(address: string) {
+    if (!address) return;
+    const profile = NimiqProfileService.getProfile(address);
+    if (!this.account.label) this.account.label = profile.label;
+    if (!this.account.moniker) this.account.moniker = profile.moniker;
+    if (!this.account.colorName) this.account.colorName = profile.colorName;
+    if (profile.avatarDataUrl && !this.account.avatarDataUrl) {
+      this.account.avatarDataUrl = profile.avatarDataUrl;
+    }
+
+    NimiqProfileService.loadAvatarDataUrl(address).then((dataUrl) => {
+      if (dataUrl && this.account.address === address && this.account.avatarDataUrl !== dataUrl) {
+        this.account.avatarDataUrl = dataUrl;
+        this.saveSession();
+      }
+    });
+  }
+
   private restoreSession() {
     const saved = localStorage.getItem('dynamio_wallet');
     if (saved) {
       try {
         this.account = { ...this.account, ...JSON.parse(saved) };
+        if (this.account.address) {
+          this.enrichWithProfile(this.account.address);
+        }
       } catch (e) {
         console.error('Failed to restore wallet', e);
       }
@@ -173,13 +208,19 @@ export class NimiqWalletService {
     if (win.nimiq && win.nimiq.requestAddress) {
       try {
         const res = await win.nimiq.requestAddress();
+        const profile = NimiqProfileService.getProfile(res.address);
         this.account = {
           address: res.address,
           formattedAddress: this.formatAddress(res.address),
+          label: profile.label,
+          moniker: profile.moniker,
+          colorName: profile.colorName,
+          avatarDataUrl: profile.avatarDataUrl,
           balanceNim: res.balance ? res.balance / 1e5 : 25.0,
           isConnected: true,
           isMiniApp: true,
         };
+        this.enrichWithProfile(res.address);
         this.saveSession();
         return this.account;
       } catch (err) {
@@ -191,15 +232,22 @@ export class NimiqWalletService {
     const existing = this.account.address ? this.account.address : null;
     const demoHex = existing || ('NQ' + Math.floor(10 + Math.random() * 89) + ' ' +
       'DYN4 M10X 8VMB J2P3 9G0E 7FL4');
+    const cleanDemo = demoHex.replace(/\s+/g, '');
+    const profile = NimiqProfileService.getProfile(cleanDemo);
     
     this.account = {
-      address: demoHex.replace(/\s+/g, ''),
+      address: cleanDemo,
       formattedAddress: this.formatAddress(demoHex),
+      label: profile.label,
+      moniker: profile.moniker,
+      colorName: profile.colorName,
+      avatarDataUrl: profile.avatarDataUrl,
       balanceNim: this.account.balanceNim > 0 ? this.account.balanceNim : 25.5,
       isConnected: true,
       isMiniApp: false,
     };
 
+    this.enrichWithProfile(cleanDemo);
     this.saveSession();
     return this.account;
   }

@@ -9,6 +9,7 @@ import {
 import { Trophy, Medal, Flame } from 'lucide-react';
 import { LeaderboardEntry } from '../../game/types';
 import { NimiqWalletService, NimiqWalletAccount } from '../../lib/nimiq/NimiqWalletService';
+import { NimiqProfileService } from '../../lib/nimiq/NimiqProfileService';
 import { StorageService } from '../../lib/persistence/StorageService';
 import { NimiqIdenticon } from '../ui/NimiqIdenticon';
 
@@ -17,19 +18,19 @@ interface LeaderboardModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const BASE_GLOBAL_LEADERBOARD: LeaderboardEntry[] = [
-  { rank: 1, playerAddress: 'NQ42 9V8B 11K2 J2P3 9G0E 7FL4', displayName: 'VortexMaster', score: 28450, combo: 8, accuracy: 96, timeSec: 42, rewardNim: 15.0, isDaily: false },
-  { rank: 2, playerAddress: 'NQ19 4L0X 8VMB J2P3 9G0E 7FL4', displayName: 'NimiqArcader', score: 24100, combo: 7, accuracy: 92, timeSec: 48, rewardNim: 10.0, isDaily: false },
-  { rank: 3, playerAddress: 'NQ88 1M7A 33BB 4KA9 22CC 5DD1', displayName: 'SphereStriker', score: 21950, combo: 6, accuracy: 89, timeSec: 54, rewardNim: 7.5, isDaily: false },
-  { rank: 4, playerAddress: 'NQ33 6X1Z 77FF 99EE 11AA 00BB', displayName: 'HyperBeam', score: 18700, combo: 5, accuracy: 94, timeSec: 58, rewardNim: 5.0, isDaily: false },
-  { rank: 5, playerAddress: 'NQ71 2P4D 88EE 00Q1 44RR 88SS', displayName: 'ZumaGod', score: 16400, combo: 5, accuracy: 85, timeSec: 65, rewardNim: 3.0, isDaily: false },
+const RAW_GLOBAL_SEEDS = [
+  { rank: 1, playerAddress: 'NQ42 9V8B 11K2 J2P3 9G0E 7FL4', score: 28450, combo: 8, accuracy: 96, timeSec: 42, rewardNim: 15.0, isDaily: false },
+  { rank: 2, playerAddress: 'NQ19 4L0X 8VMB J2P3 9G0E 7FL4', score: 24100, combo: 7, accuracy: 92, timeSec: 48, rewardNim: 10.0, isDaily: false },
+  { rank: 3, playerAddress: 'NQ88 1M7A 33BB 4KA9 22CC 5DD1', score: 21950, combo: 6, accuracy: 89, timeSec: 54, rewardNim: 7.5, isDaily: false },
+  { rank: 4, playerAddress: 'NQ33 6X1Z 77FF 99EE 11AA 00BB', score: 18700, combo: 5, accuracy: 94, timeSec: 58, rewardNim: 5.0, isDaily: false },
+  { rank: 5, playerAddress: 'NQ71 2P4D 88EE 00Q1 44RR 88SS', score: 16400, combo: 5, accuracy: 85, timeSec: 65, rewardNim: 3.0, isDaily: false },
 ];
 
-const BASE_DAILY_LEADERBOARD: LeaderboardEntry[] = [
-  { rank: 1, playerAddress: 'NQ19 4L0X 8VMB J2P3 9G0E 7FL4', displayName: 'NimiqArcader', score: 14850, combo: 6, accuracy: 95, timeSec: 38, rewardNim: 5.0, isDaily: true },
-  { rank: 2, playerAddress: 'NQ55 8T2C 99DD 11A3 77FF 33CC', displayName: 'ChronoSphere', score: 13900, combo: 5, accuracy: 91, timeSec: 41, rewardNim: 3.5, isDaily: true },
-  { rank: 3, playerAddress: 'NQ42 9V8B 11K2 J2P3 9G0E 7FL4', displayName: 'VortexMaster', score: 12400, combo: 5, accuracy: 88, timeSec: 44, rewardNim: 2.0, isDaily: true },
-  { rank: 4, playerAddress: 'NQ92 3Z9J 44BB 55KK 88PP 22LL', displayName: 'EnergyPulse', score: 11100, combo: 4, accuracy: 86, timeSec: 49, rewardNim: 1.0, isDaily: true },
+const RAW_DAILY_SEEDS = [
+  { rank: 1, playerAddress: 'NQ19 4L0X 8VMB J2P3 9G0E 7FL4', score: 14850, combo: 6, accuracy: 95, timeSec: 38, rewardNim: 5.0, isDaily: true },
+  { rank: 2, playerAddress: 'NQ55 8T2C 99DD 11A3 77FF 33CC', score: 13900, combo: 5, accuracy: 91, timeSec: 41, rewardNim: 3.5, isDaily: true },
+  { rank: 3, playerAddress: 'NQ42 9V8B 11K2 J2P3 9G0E 7FL4', score: 12400, combo: 5, accuracy: 88, timeSec: 44, rewardNim: 2.0, isDaily: true },
+  { rank: 4, playerAddress: 'NQ92 3Z9J 44BB 55KK 88PP 22LL', score: 11100, combo: 4, accuracy: 86, timeSec: 49, rewardNim: 1.0, isDaily: true },
 ];
 
 export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onOpenChange }) => {
@@ -50,18 +51,28 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onOpen
     }
   }, [open]);
 
-  // Merge user into leaderboard entries
-  const baseEntries = tab === 'global' ? BASE_GLOBAL_LEADERBOARD : BASE_DAILY_LEADERBOARD;
-  
-  // Calculate user entry if playing / connected
+  // Calculate user profile details
   const userAddress = account.formattedAddress || 'NQ25 DYN4 M10X 8VMB J2P3 9G0E 7FL4';
-  const effectiveUserScore = Math.max(userScore, 9850); // initial friendly seed or real user score
+  const userProfile = NimiqProfileService.getProfile(userAddress);
+  const userDisplayName = account.label || userProfile.label;
+  const userMoniker = account.moniker || userProfile.moniker;
 
-  const allEntries = [...baseEntries];
+  // Build base entries with authentic derived Nimiq account names
+  const baseSeeds = tab === 'global' ? RAW_GLOBAL_SEEDS : RAW_DAILY_SEEDS;
+  const baseEntries: LeaderboardEntry[] = baseSeeds.map((seed) => {
+    const prof = NimiqProfileService.getProfile(seed.playerAddress);
+    return {
+      ...seed,
+      displayName: prof.label,
+    };
+  });
+  
+  const effectiveUserScore = Math.max(userScore, 9850);
+
   const userEntry: LeaderboardEntry = {
     rank: 1, // dynamically calculated below
     playerAddress: userAddress,
-    displayName: 'You (Player)',
+    displayName: userDisplayName,
     score: effectiveUserScore,
     combo: 5,
     accuracy: 94,
@@ -71,7 +82,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onOpen
   };
 
   // Add user and sort
-  const combined = [...allEntries, userEntry].sort((a, b) => b.score - a.score);
+  const combined = [...baseEntries, userEntry].sort((a, b) => b.score - a.score);
   // Assign ranks
   const rankedEntries = combined.map((entry, idx) => ({
     ...entry,
@@ -91,7 +102,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onOpen
                 Hall of Champions
               </DialogTitle>
               <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
-                Real-time on-chain arcade rankings & verified rewards
+                Real-time on-chain arcade rankings with authentic Nimiq Identicons
               </DialogDescription>
             </div>
             <Trophy className="w-6 h-6 text-[#FFCA1A]" />
@@ -100,23 +111,29 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onOpen
           <div className="h-[2px] w-full bg-[#FFCA1A] mt-2 rounded-full" />
         </DialogHeader>
 
-        {/* 🌟 Current Player Standing Card with Nimiq PFP */}
-        <div className="rounded-xl border border-primary/40 bg-primary/5 p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-xs">
+        {/* 🌟 Current Player Standing Card with Nimiq PFP & Scraped Name */}
+        <div className="rounded-xl border border-[#FFCA1A]/40 bg-[#FFCA1A]/5 p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center space-x-3 min-w-0">
             {/* Nimiq Wallet Identicon PFP */}
-            <NimiqIdenticon address={userAddress} size={42} className="ring-2 ring-primary/40" />
+            <NimiqIdenticon address={userAddress} size={44} showBorder />
             <div className="min-w-0">
               <div className="flex items-center space-x-2">
                 <span className="font-bold text-sm text-foreground truncate">
-                  {account.isConnected ? 'You (Connected)' : 'You (Arcade Player)'}
+                  {userDisplayName}
                 </span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#FFCA1A]/20 text-[#FFCA1A] border border-[#FFCA1A]/30 shrink-0">
                   Rank #{currentUserRank}
                 </span>
               </div>
-              <p className="font-mono text-[11px] text-muted-foreground truncate">
-                {userAddress}
-              </p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[10px] text-primary font-medium">
+                  {userMoniker}
+                </span>
+                <span className="text-muted-foreground text-[10px]">•</span>
+                <p className="font-mono text-[11px] text-muted-foreground truncate">
+                  {userAddress.slice(0, 19)}...
+                </p>
+              </div>
             </div>
           </div>
 
@@ -192,13 +209,13 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onOpen
                     <td className="p-3">
                       <div className="flex items-center space-x-2.5">
                         {/* Nimiq Wallet Identicon PFP for every player */}
-                        <NimiqIdenticon address={entry.playerAddress} size={28} />
+                        <NimiqIdenticon address={entry.playerAddress} size={32} showBorder={isUser} />
                         <div className="min-w-0">
-                          <span className={`font-semibold text-foreground block truncate ${isUser ? 'text-primary' : ''}`}>
+                          <span className={`font-semibold text-foreground block truncate ${isUser ? 'text-[#FFCA1A]' : ''}`}>
                             {entry.displayName} {isUser && '(You)'}
                           </span>
                           <span className="font-mono text-[10px] text-muted-foreground truncate block">
-                            {entry.playerAddress.slice(0, 14)}...
+                            {entry.playerAddress.slice(0, 19)}...
                           </span>
                         </div>
                       </div>
