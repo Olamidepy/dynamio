@@ -5,7 +5,7 @@ const TREASURY_PRIVATE_KEY =
   process.env.NIMIQ_TREASURY_KEY ||
   'be10f7a8d866d07a1a5643964c5f740a65a4cbb5f83d0ae48815afea9e30d729';
 
-const NETWORK_ID = process.env.NIMIQ_NETWORK === 'test' ? 5 : 42;
+const NETWORK_ID = process.env.NIMIQ_NETWORK === 'test' ? 5 : 24;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -35,8 +35,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: true,
       address,
       balanceNim: balance,
-      network: NETWORK_ID === 42 ? 'mainnet' : 'testnet',
-      faucetUrl: NETWORK_ID === 42 ? `https://nimiq.watch/#${cleanAddress}` : 'https://faucet.pos.nimiq-testnet.com',
+      network: NETWORK_ID === 24 ? 'mainnet' : 'testnet',
+      faucetUrl: NETWORK_ID === 24 ? `https://nimiq.watch/#${cleanAddress}` : 'https://faucet.pos.nimiq-testnet.com',
     });
   } catch (error: any) {
     return res.status(500).json({

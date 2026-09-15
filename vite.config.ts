@@ -6,7 +6,7 @@ function nimiqDevApiPlugin(): Plugin {
   const TREASURY_PRIVATE_KEY =
     process.env.NIMIQ_TREASURY_KEY ||
     'be10f7a8d866d07a1a5643964c5f740a65a4cbb5f83d0ae48815afea9e30d729';
-  const NETWORK_ID = process.env.NIMIQ_NETWORK === 'test' ? 5 : 42;
+  const NETWORK_ID = process.env.NIMIQ_NETWORK === 'test' ? 5 : 24;
 
   return {
     name: 'nimiq-dev-api',
@@ -37,8 +37,8 @@ function nimiqDevApiPlugin(): Plugin {
                 success: true,
                 address,
                 balanceNim: balance,
-                network: NETWORK_ID === 42 ? 'mainnet' : 'testnet',
-                faucetUrl: NETWORK_ID === 42 ? `https://nimiq.watch/#${clean}` : 'https://faucet.pos.nimiq-testnet.com',
+                network: NETWORK_ID === 24 ? 'mainnet' : 'testnet',
+                faucetUrl: NETWORK_ID === 24 ? `https://nimiq.watch/#${clean}` : 'https://faucet.pos.nimiq-testnet.com',
               })
             );
             return;
@@ -75,22 +75,29 @@ function nimiqDevApiPlugin(): Plugin {
               const treasuryAddr = keyPair.publicKey.toAddress();
               const recipientAddr = Nimiq.Address.fromUserFriendlyAddress(clean);
 
-              let validityHeight =
-                typeof blockNumber === 'number' && blockNumber > 0 ? blockNumber : 0;
-              if (!validityHeight) {
-                try {
-                  const blkRes = await fetch('https://rpc.nimiqwatch.com', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ jsonrpc: '2.0', method: 'getBlockNumber', params: [], id: 1 }),
-                  });
-                  if (blkRes.ok) {
-                    const blkData = (await blkRes.json()) as any;
-                    validityHeight = blkData.result?.data || blkData.result || 61630272;
+              let validityHeight = 0;
+              try {
+                const blkRes = await fetch('https://rpc.nimiqwatch.com', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ jsonrpc: '2.0', method: 'getBlockNumber', params: [], id: 1 }),
+                });
+                if (blkRes.ok) {
+                  const blkData = (await blkRes.json()) as any;
+                  const currentBlock =
+                    typeof blkData.result?.data === 'number'
+                      ? blkData.result.data
+                      : typeof blkData.result === 'number'
+                      ? blkData.result
+                      : 0;
+                  if (currentBlock > 0) {
+                    validityHeight = currentBlock - 2;
                   }
-                } catch {
-                  validityHeight = 61630272;
                 }
+              } catch {}
+
+              if (!validityHeight) {
+                validityHeight = typeof blockNumber === 'number' && blockNumber > 0 ? blockNumber : 61636600;
               }
 
               const tx = Nimiq.TransactionBuilder.newBasic(
@@ -148,7 +155,7 @@ function nimiqDevApiPlugin(): Plugin {
                   recipient: clean,
                   amountNim: nimAmount,
                   ticketId,
-                  network: NETWORK_ID === 42 ? 'mainnet' : 'testnet',
+                  network: NETWORK_ID === 24 ? 'mainnet' : 'testnet',
                 })
               );
             } catch (err: any) {

@@ -7,8 +7,8 @@ const TREASURY_PRIVATE_KEY =
   process.env.NIMIQ_TREASURY_KEY ||
   'be10f7a8d866d07a1a5643964c5f740a65a4cbb5f83d0ae48815afea9e30d729';
 
-// Network ID: 42 = MainAlbatross (Mainnet), 5 = TestAlbatross (Testnet)
-const NETWORK_ID = process.env.NIMIQ_NETWORK === 'test' ? 5 : 42;
+// Network ID: 24 = MainAlbatross (Mainnet 2.0), 5 = TestAlbatross (Testnet 2.0)
+const NETWORK_ID = process.env.NIMIQ_NETWORK === 'test' ? 5 : 24;
 
 interface ClaimRequestBody {
   recipient: string;
@@ -56,22 +56,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const treasuryAddress = keyPair.publicKey.toAddress();
     const recipientAddress = Nimiq.Address.fromUserFriendlyAddress(cleanRecipient);
 
-    // 2. Live block height resolution
-    let validityHeight = typeof blockNumber === 'number' && blockNumber > 0 ? blockNumber : 0;
-    if (!validityHeight) {
-      try {
-        const blkRes = await fetch('https://rpc.nimiqwatch.com', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jsonrpc: '2.0', method: 'getBlockNumber', params: [], id: 1 }),
-        });
-        if (blkRes.ok) {
-          const blkData = (await blkRes.json()) as any;
-          validityHeight = blkData.result?.data || blkData.result || 61630272;
+    // 2. Fetch live block height from Nimiq Mainnet 2.0 node
+    let validityHeight = 0;
+    try {
+      const blkRes = await fetch('https://rpc.nimiqwatch.com', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', method: 'getBlockNumber', params: [], id: 1 }),
+      });
+      if (blkRes.ok) {
+        const blkData = (await blkRes.json()) as any;
+        const currentBlock =
+          typeof blkData.result?.data === 'number'
+            ? blkData.result.data
+            : typeof blkData.result === 'number'
+            ? blkData.result
+            : 0;
+        if (currentBlock > 0) {
+          validityHeight = currentBlock - 2;
         }
-      } catch {
-        validityHeight = 61630272;
       }
+    } catch {}
+
+    if (!validityHeight) {
+      validityHeight = typeof blockNumber === 'number' && blockNumber > 0 ? blockNumber : 61636600;
     }
 
     // 3. Build & sign transaction
@@ -130,7 +138,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       recipient: cleanRecipient,
       amountNim: nimAmount,
       ticketId,
-      network: NETWORK_ID === 42 ? 'mainnet' : 'testnet',
+      network: NETWORK_ID === 24 ? 'mainnet' : 'testnet',
     });
   } catch (error: any) {
     console.error('Error claiming NIM reward:', error);
