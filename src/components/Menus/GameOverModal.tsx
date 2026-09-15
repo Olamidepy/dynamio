@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { RotateCcw, Home, AlertOctagon, Wallet, CheckCircle, Loader2, Coins } from 'lucide-react';
+import { RotateCcw, Home, AlertOctagon, Wallet, CheckCircle, Loader2, Coins, ExternalLink } from 'lucide-react';
 import { GameTelemetry, LevelConfig } from '../../game/types';
 import { RewardService } from '../../lib/rewards/RewardService';
 import { NimiqWalletAccount, NimiqWalletService } from '../../lib/nimiq/NimiqWalletService';
@@ -28,6 +28,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
 }) => {
   const [isClaiming, setIsClaiming] = useState(false);
   const [isClaimed, setIsClaimed] = useState(false);
+  const [claimTxHash, setClaimTxHash] = useState<string | null>(null);
 
   const reward = telemetry ? RewardService.calculateRewards(telemetry, level) : { nimReward: 0, energyReward: 0 };
 
@@ -46,6 +47,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
       );
       if (res.success) {
         setIsClaimed(true);
+        setClaimTxHash(res.txHash || null);
       }
     } catch (e) {
       console.error(e);
@@ -102,10 +104,31 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         {reward.nimReward > 0 && (
           <div className="mb-4">
             {isClaimed ? (
-              <Badge variant="secondary" className="w-full py-1.5 justify-center space-x-1 border-[#FFCA1A]/30 text-[#FFCA1A]">
-                <CheckCircle className="w-3.5 h-3.5 text-[#FFCA1A]" />
-                <span>NIM Credited to Wallet!</span>
-              </Badge>
+              <div className="space-y-1.5">
+                <Badge variant="secondary" className="w-full py-1.5 justify-center space-x-1 border-[#FFCA1A]/30 text-[#FFCA1A]">
+                  <CheckCircle className="w-3.5 h-3.5 text-[#FFCA1A]" />
+                  <span>NIM Sent to Nimiq Pay!</span>
+                </Badge>
+                {claimTxHash && (
+                  <div className="p-2 bg-background/60 rounded-lg border border-border/40 text-left">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-muted-foreground">Blockchain Receipt</span>
+                      <a
+                        href={`https://test.nimiq.watch/#${claimTxHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#FFCA1A] hover:underline flex items-center gap-0.5 font-medium"
+                      >
+                        <span>Explorer</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
+                    <p className="text-[9px] text-muted-foreground font-mono truncate mt-0.5">
+                      Tx: {claimTxHash}
+                    </p>
+                  </div>
+                )}
+              </div>
             ) : (
               <Button
                 variant="outline"

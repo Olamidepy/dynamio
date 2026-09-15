@@ -3,7 +3,7 @@ import confetti from 'canvas-confetti';
 import { Dialog, DialogContent } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Star, CheckCircle, RotateCcw, ArrowRight, Wallet, Trophy, Loader2 } from 'lucide-react';
+import { Star, CheckCircle, RotateCcw, ArrowRight, Wallet, Trophy, Loader2, ExternalLink } from 'lucide-react';
 import { GameTelemetry, LevelConfig } from '../../game/types';
 import { RewardService, ClaimTicket } from '../../lib/rewards/RewardService';
 import { NimiqWalletAccount, NimiqWalletService } from '../../lib/nimiq/NimiqWalletService';
@@ -186,9 +186,26 @@ export const LevelCompleteModal: React.FC<LevelCompleteModalProps> = ({
           </div>
 
           {claimTxHash && (
-            <p className="text-[9px] text-[#FFCA1A] font-mono mt-2 truncate">
-              TX: {claimTxHash}
-            </p>
+            <div className="mt-2.5 p-2 bg-background/60 rounded-lg border border-border/40 text-left">
+              <div className="flex items-center justify-between text-[10px] mb-1">
+                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  Received on Nimiq Network
+                </span>
+                <a
+                  href={`https://test.nimiq.watch/#${claimTxHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#FFCA1A] hover:underline flex items-center gap-0.5 font-medium"
+                >
+                  <span>Explorer</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              </div>
+              <p className="text-[9px] text-muted-foreground font-mono truncate">
+                Tx: {claimTxHash}
+              </p>
+            </div>
           )}
         </div>
 
