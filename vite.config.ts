@@ -75,8 +75,23 @@ function nimiqDevApiPlugin(): Plugin {
               const treasuryAddr = keyPair.publicKey.toAddress();
               const recipientAddr = Nimiq.Address.fromUserFriendlyAddress(clean);
 
-              const validityHeight =
-                typeof blockNumber === 'number' && blockNumber > 0 ? blockNumber : 1000;
+              let validityHeight =
+                typeof blockNumber === 'number' && blockNumber > 0 ? blockNumber : 0;
+              if (!validityHeight) {
+                try {
+                  const blkRes = await fetch('https://rpc.nimiqwatch.com', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jsonrpc: '2.0', method: 'getBlockNumber', params: [], id: 1 }),
+                  });
+                  if (blkRes.ok) {
+                    const blkData = (await blkRes.json()) as any;
+                    validityHeight = blkData.result?.data || blkData.result || 61630272;
+                  }
+                } catch {
+                  validityHeight = 61630272;
+                }
+              }
 
               const tx = Nimiq.TransactionBuilder.newBasic(
                 treasuryAddr,
@@ -91,13 +106,35 @@ function nimiqDevApiPlugin(): Plugin {
               const txHash = tx.hash();
               const rawHex = tx.toHex();
 
+              let broadcasted = false;
+              try {
+                const rpcRes = await fetch('https://rpc.nimiqwatch.com', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    method: 'sendRawTransaction',
+                    params: [rawHex],
+                    id: 1,
+                  }),
+                });
+                if (rpcRes.ok) {
+                  const json = (await rpcRes.json()) as any;
+                  if (json.result) {
+                    broadcasted = true;
+                  }
+                }
+              } catch (broadcastErr) {
+                console.warn('Direct broadcast error in dev server:', broadcastErr);
+              }
+
               res.setHeader('Content-Type', 'application/json');
               res.end(
                 JSON.stringify({
                   success: true,
                   txHash,
                   rawHex,
-                  broadcasted: true,
+                  broadcasted,
                   treasuryAddress: treasuryAddr.toUserFriendlyAddress(),
                   recipient: clean,
                   amountNim: nimAmount,

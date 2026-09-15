@@ -56,15 +56,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const treasuryAddress = keyPair.publicKey.toAddress();
     const recipientAddress = Nimiq.Address.fromUserFriendlyAddress(cleanRecipient);
 
-    // 2. Validity start height (defaults to current block estimate if not provided by client)
-    const validityHeight = typeof blockNumber === 'number' && blockNumber > 0 ? blockNumber : 1000;
+    // 2. Live block height resolution
+    let validityHeight = typeof blockNumber === 'number' && blockNumber > 0 ? blockNumber : 0;
+    if (!validityHeight) {
+      try {
+        const blkRes = await fetch('https://rpc.nimiqwatch.com', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jsonrpc: '2.0', method: 'getBlockNumber', params: [], id: 1 }),
+        });
+        if (blkRes.ok) {
+          const blkData = (await blkRes.json()) as any;
+          validityHeight = blkData.result?.data || blkData.result || 61630272;
+        }
+      } catch {
+        validityHeight = 61630272;
+      }
+    }
 
     // 3. Build & sign transaction
     const tx = Nimiq.TransactionBuilder.newBasic(
       treasuryAddress,
       recipientAddress,
       lunas,
-      BigInt(0), // 0 fee for Testnet
+      BigInt(0), // 0 fee for Nimiq PoS
       validityHeight,
       NETWORK_ID
     );
@@ -74,36 +89,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const txHash = tx.hash();
     const rawHex = tx.toHex();
 
-    // 4. Broadcast attempt to RPC nodes if available
-    const rpcUrls = [
-      process.env.NIMIQ_RPC_URL,
-      'http://127.0.0.1:8648',
-      'https://rpc.nimiqwatch.com',
-    ].filter(Boolean) as string[];
-
+    // 4. Broadcast on live Nimiq network via RPC
     let broadcasted = false;
-    for (const rpcUrl of rpcUrls) {
-      try {
-        const rpcRes = await fetch(rpcUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'sendRawTransaction',
-            params: [rawHex],
-            id: 1,
-          }),
-        });
-        if (rpcRes.ok) {
-          const json = await rpcRes.json();
-          if (json.result) {
-            broadcasted = true;
-            break;
-          }
+    try {
+      const rpcRes = await fetch('https://rpc.nimiqwatch.com', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'sendRawTransaction',
+          params: [rawHex],
+          id: 1,
+        }),
+      });
+      if (rpcRes.ok) {
+        const json = (await rpcRes.json()) as any;
+        if (json.result) {
+          broadcasted = true;
         }
-      } catch {
-        // Continue to fallback
       }
+    } catch (broadcastErr) {
+      console.warn('Direct broadcast error:', broadcastErr);
     }
 
     return res.status(200).json({
