@@ -51,39 +51,39 @@ interface OpenChallenge {
 const ESCROW_TREASURY_ADDRESS = 'NQ07 B790 1DP1 PPQK 2P0Y JXYP QKBT 1H95 P90S';
 
 const RECENT_WINNERS = [
-  { player: '@NimiqKing', amount: 0.45, level: 'Amber Spiral', time: '12m ago' },
-  { player: '@ChainMaster', amount: 0.25, level: 'Cobalt S-Bend', time: '28m ago' },
-  { player: '@ZumaWizard', amount: 0.15, level: 'Neon Gateway', time: '1h ago' },
-  { player: '@VortexHunter', amount: 0.75, level: 'Quantum Vortex', time: '2h ago' },
+  { player: '@NimiqKing', amount: 30.0, level: 'Amber Spiral', time: '12m ago' },
+  { player: '@ChainMaster', amount: 17.0, level: 'Cobalt S-Bend', time: '28m ago' },
+  { player: '@ZumaWizard', amount: 10.0, level: 'Neon Gateway', time: '1h ago' },
+  { player: '@VortexHunter', amount: 45.0, level: 'Quantum Vortex', time: '2h ago' },
 ];
 
 const INITIAL_OPEN_CHALLENGES: OpenChallenge[] = [
   {
-    id: 'chall_neon_005',
-    creator: 'NQ33...11FF',
-    levelId: 1,
-    entryFee: 0.05,
-    pool: 0.15,
-    joinedCount: 1,
-    maxPlayers: 3,
-    isPrivate: false,
-  },
-  {
-    id: 'chall_amber_010',
+    id: 'chall_amber_20',
     creator: 'NQ72...89AB',
     levelId: 2,
-    entryFee: 0.1,
-    pool: 0.3,
+    entryFee: 20,
+    pool: 60,
     joinedCount: 2,
     maxPlayers: 3,
     isPrivate: false,
   },
   {
-    id: 'chall_cobalt_025',
+    id: 'chall_neon_10',
+    creator: 'NQ33...11FF',
+    levelId: 1,
+    entryFee: 10,
+    pool: 30,
+    joinedCount: 1,
+    maxPlayers: 3,
+    isPrivate: false,
+  },
+  {
+    id: 'chall_cobalt_20',
     creator: 'NQ91...44DD',
     levelId: 3,
-    entryFee: 0.25,
-    pool: 0.75,
+    entryFee: 20,
+    pool: 60,
     joinedCount: 2,
     maxPlayers: 3,
     isPrivate: false,
@@ -98,18 +98,18 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
   onConnectWallet,
 }) => {
   const [selectedTab, setSelectedTab] = useState<string>('open');
-  const [selectedEntryFee, setSelectedEntryFee] = useState<number>(0.05);
-  const [selectedLevelId, setSelectedLevelId] = useState<number>(1);
+  const [selectedEntryFee, setSelectedEntryFee] = useState<number>(20);
+  const [selectedLevelId, setSelectedLevelId] = useState<number>(2);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [openChallenges, setOpenChallenges] = useState<OpenChallenge[]>(INITIAL_OPEN_CHALLENGES);
   const [myMatches, setMyMatches] = useState<OpenChallenge[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Pool distribution for 3 players
-  const totalPool = Number((selectedEntryFee * 3).toFixed(3));
-  const firstPrize = Number((totalPool * 0.5).toFixed(3)); // 50%
-  const secondPrize = Number((totalPool * 0.283).toFixed(3)); // 28.3%
-  const thirdPrize = Number((totalPool * 0.167).toFixed(3)); // 16.7%
+  const totalPool = selectedEntryFee * 3;
+  const firstPrize = Math.round(totalPool * 0.5); // 50% = 30 NIM for 60
+  const secondPrize = Math.round(totalPool * 0.283); // 28.3% = 17 NIM for 60
+  const thirdPrize = Math.round(totalPool * 0.167); // 16.7% = 10 NIM for 60
 
   const handleCreateChallenge = async () => {
     if (!wallet.isConnected) {
@@ -390,7 +390,7 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
                     </span>
                   </div>
                   <div className="grid grid-cols-4 gap-3">
-                    {[0.05, 0.1, 0.25, 0.5].map((fee) => {
+                    {[5, 10, 20, 50].map((fee) => {
                       const isSelected = selectedEntryFee === fee;
                       return (
                         <Button

@@ -47,10 +47,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ success: false, error: 'Invalid Nimiq recipient format' });
     }
 
-    const rawAmount = Number(amount) || 0.1;
-    // Cap testnet payouts to 0.1 NIM so Treasury balance supports multiple test sessions
-    const nimAmount = NETWORK_ID === 5 ? Math.min(rawAmount, 0.1) : rawAmount;
-    const lunas = BigInt(Math.max(1000, Math.round(nimAmount * 1e5))); // Minimum 1,000 Luna
+    const nimAmount = Number(amount) || 1.0;
+    const lunas = BigInt(Math.round(nimAmount * 1e5)); // 1 NIM = 100,000 Luna
 
     // 1. Initialize Treasury KeyPair
     const privateKey = Nimiq.PrivateKey.fromHex(TREASURY_PRIVATE_KEY);
