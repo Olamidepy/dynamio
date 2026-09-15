@@ -32,10 +32,10 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   const [claimError, setClaimError] = useState<string | null>(null);
 
   const reward = telemetry ? RewardService.calculateRewards(telemetry, level) : { nimReward: 0, energyReward: 0 };
-  const isDemo = !wallet || !wallet.isConnected || wallet.address.startsWith('NQDYN');
+  const isConnected = !!(wallet && wallet.isConnected && wallet.address && wallet.address.startsWith('NQ'));
 
   const handleClaim = async () => {
-    if (isDemo) {
+    if (!isConnected) {
       if (onConnectWallet) onConnectWallet();
       return;
     }
@@ -150,13 +150,13 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                   ) : (
                     <>
                       <Wallet className="w-3.5 h-3.5 text-[#FFCA1A]" />
-                      <span>{isDemo ? 'Connect Real Wallet to Claim' : `Claim +${reward.nimReward.toFixed(2)} NIM Reward`}</span>
+                      <span>{isConnected ? `Claim +${reward.nimReward.toFixed(2)} NIM Reward` : 'Connect Wallet to Claim'}</span>
                     </>
                   )}
                 </Button>
-                {isDemo && (
+                {!isConnected && (
                   <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
-                    Connect real Nimiq wallet to receive live Mainnet payouts.
+                    Connect your Nimiq wallet to receive live Mainnet payouts.
                   </p>
                 )}
                 {claimError && (

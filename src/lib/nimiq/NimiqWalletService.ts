@@ -37,6 +37,7 @@ export class NimiqWalletService {
   private constructor() {
     this.restoreSession();
     this.initMiniApp();
+    this.setupWindowWatcher();
   }
 
   public static getInstance(): NimiqWalletService {
@@ -47,27 +48,88 @@ export class NimiqWalletService {
   }
 
   /**
+   * Watch window for late-injected Nimiq Pay webview bridges (e.g. Android/iOS WebView)
+   */
+  private setupWindowWatcher() {
+    if (typeof window === 'undefined') return;
+    let checks = 0;
+    const interval = setInterval(() => {
+      checks++;
+      if ((window as any).nimiq && !this.nimiqProvider) {
+        this.initMiniApp();
+        clearInterval(interval);
+      }
+      if (checks >= 25) {
+        clearInterval(interval);
+      }
+    }, 200);
+  }
+
+  /**
+   * Returns true if currently running inside Nimiq Pay or a Nimiq mini app webview
+   */
+  public isMiniApp(): boolean {
+    if (this.isMiniAppReady && this.nimiqProvider) return true;
+    if (typeof window !== 'undefined') {
+      if ((window as any).nimiq || (window as any).nimiqPay) return true;
+    }
+    return !!this.account.isMiniApp;
+  }
+
+  /**
    * Initializes the Nimiq Mini App SDK bridge.
    * Auto-detects if running inside Nimiq Pay mobile wallet.
    */
-  public async initMiniApp(): Promise<void> {
-    if (this.isInitializing) return;
+  public async initMiniApp(): Promise<any> {
+    if (this.nimiqProvider) {
+      this.isMiniAppReady = true;
+      return this.nimiqProvider;
+    }
+
+    if (this.isInitializing) {
+      return new Promise((resolve) => {
+        const t = setInterval(() => {
+          if (!this.isInitializing) {
+            clearInterval(t);
+            resolve(this.nimiqProvider);
+          }
+        }, 50);
+      });
+    }
+
     this.isInitializing = true;
 
     try {
-      // Initialize with 4s timeout so standalone web browsers don't stall
-      const provider = await init({ timeout: 4000 });
+      let provider: any = null;
+      if (typeof window !== 'undefined' && (window as any).nimiq) {
+        provider = (window as any).nimiq;
+      } else {
+        // Poll for provider with 3s timeout
+        provider = await init({ timeout: 3000 }).catch(() => null);
+        if (!provider && typeof window !== 'undefined' && (window as any).nimiq) {
+          provider = (window as any).nimiq;
+        }
+      }
+
       if (provider) {
         this.nimiqProvider = provider;
         this.isMiniAppReady = true;
+
+        try {
+          if (typeof provider.setRPCUrl === 'function') {
+            provider.setRPCUrl('https://rpc.nimiqwatch.com');
+          }
+        } catch {}
+
         await this.syncMiniAppAccount();
+        return provider;
       }
-    } catch {
-      // Fallback: outside Nimiq Pay (standard web browser)
-      this.isMiniAppReady = false;
+    } catch (e) {
+      console.warn('Mini-app init warning:', e);
     } finally {
       this.isInitializing = false;
     }
+    return null;
   }
 
   /**
@@ -101,17 +163,20 @@ export class NimiqWalletService {
   }
 
   /**
-   * Fetches the user's accounts, consensus, and block height from Nimiq Pay
+   * Directly queries the user's account from Nimiq Pay in-app provider
    */
   public async syncMiniAppAccount(): Promise<NimiqWalletAccount | null> {
-    if (!this.nimiqProvider) return null;
+    const provider = this.nimiqProvider || (typeof window !== 'undefined' ? (window as any).nimiq : null);
+    if (!provider) return null;
+    this.nimiqProvider = provider;
+    this.isMiniAppReady = true;
 
     try {
-      const [accountsResult, consensusResult, blockResult] = await Promise.all([
-        this.nimiqProvider.listAccounts(),
-        this.nimiqProvider.isConsensusEstablished().catch(() => false),
-        this.nimiqProvider.getBlockNumber().catch(() => null),
-      ]);
+      const accountsResult = await provider.listAccounts();
+      if (!accountsResult || (typeof accountsResult === 'object' && 'error' in accountsResult)) {
+        console.warn('Mini App listAccounts error:', accountsResult);
+        return null;
+      }
 
       const accounts = Array.isArray(accountsResult) ? accountsResult : [];
       if (accounts.length > 0) {
@@ -130,15 +195,13 @@ export class NimiqWalletService {
           balanceNim: liveBal !== null ? liveBal : (this.account.balanceNim || 0),
           isConnected: true,
           isMiniApp: true,
-          consensus: !!consensusResult,
-          blockNumber: typeof blockResult === 'number' ? blockResult : undefined,
         };
         this.enrichWithProfile(address);
         this.saveSession();
         return this.account;
       }
     } catch (e) {
-      console.warn('Mini App sync warning:', e);
+      console.warn('Mini App sync error:', e);
     }
     return null;
   }
@@ -251,17 +314,25 @@ export class NimiqWalletService {
 
   /**
    * Connects to Nimiq wallet.
-   * If running inside Nimiq Pay, queries live accounts.
+   * If running inside Nimiq Pay, queries live accounts directly from in-app provider.
+   * NEVER redirects to wallet.nimiq.com when running inside Nimiq Pay.
    * If running in browser with Hub, triggers Nimiq Hub account chooser.
    */
   public async connect(): Promise<NimiqWalletAccount> {
-    // 1. If Nimiq Pay mini app provider is ready, query live accounts
-    if (this.isMiniAppReady && this.nimiqProvider) {
-      const liveAcc = await this.syncMiniAppAccount();
-      if (liveAcc) return liveAcc;
+    // 1. If inside Nimiq Pay or provider exists/is injected
+    if (this.isMiniApp() || (typeof window !== 'undefined' && ((window as any).nimiq || (window as any).nimiqPay))) {
+      let provider = this.nimiqProvider || (typeof window !== 'undefined' ? (window as any).nimiq : null);
+      if (!provider) {
+        provider = await this.initMiniApp();
+      }
+      if (provider) {
+        const liveAcc = await this.syncMiniAppAccount();
+        if (liveAcc) return liveAcc;
+      }
+      throw new Error('Could not connect with Nimiq Pay app. Please check app permissions.');
     }
 
-    // 2. Official Nimiq Hub connection
+    // 2. Desktop browser fallback: Official Nimiq Hub connection
     return await this.connectViaHub();
   }
 
@@ -286,10 +357,6 @@ export class NimiqWalletService {
   ): Promise<{ success: boolean; txHash: string; rawHex?: string }> {
     if (!this.account.isConnected || !this.account.address) {
       throw new Error('Wallet not connected');
-    }
-
-    if (this.account.address.startsWith('NQDYN')) {
-      throw new Error('Please connect your real Nimiq wallet (e.g. Red Address NQ39... or NQ51...) to receive live Mainnet payouts.');
     }
 
     try {
@@ -343,7 +410,7 @@ export class NimiqWalletService {
 
   /**
    * Sends or escrows NIM for challenge entry
-   * Dispatches a live on-chain transaction via Nimiq Pay or official Nimiq Hub!
+   * Dispatches a live on-chain transaction via native Nimiq Pay or official Nimiq Hub!
    */
   public async sendTransaction(recipient: string, nimAmount: number): Promise<{ success: boolean; txHash: string }> {
     if (!this.account.isConnected) {
@@ -353,27 +420,39 @@ export class NimiqWalletService {
     const cleanRecipient = recipient.replace(/\s+/g, '').toUpperCase();
     const lunas = Math.round(nimAmount * 1e5); // 1 NIM = 100,000 Lunas
 
-    // 1. If inside Nimiq Pay Mini App, use native sendBasicTransaction
-    if (this.isMiniAppReady && this.nimiqProvider && this.nimiqProvider.sendBasicTransaction) {
-      try {
-        const res = await this.nimiqProvider.sendBasicTransaction({
-          recipient: cleanRecipient,
-          value: lunas,
-        });
+    // 1. If inside Nimiq Pay Mini App, use native in-app sendBasicTransaction
+    const provider = this.nimiqProvider || (typeof window !== 'undefined' ? (window as any).nimiq : null);
+    if (this.isMiniApp() || (provider && provider.sendBasicTransaction)) {
+      if (!this.nimiqProvider && provider) {
+        this.nimiqProvider = provider;
+        this.isMiniAppReady = true;
+      }
+      if (this.nimiqProvider && this.nimiqProvider.sendBasicTransaction) {
+        try {
+          const res = await this.nimiqProvider.sendBasicTransaction({
+            recipient: cleanRecipient,
+            value: lunas,
+          });
 
-        if (typeof res === 'object' && res && 'error' in res) {
-          throw new Error((res as any).error?.message || 'Transaction was cancelled or failed in Nimiq Pay');
+          if (typeof res === 'object' && res && 'error' in res) {
+            throw new Error((res as any).error?.message || 'Transaction was cancelled or failed in Nimiq Pay');
+          }
+
+          const txHash = typeof res === 'string' ? res : (res as any)?.hash || (res as any)?.transactionHash || 'tx_confirmed';
+          // Refresh on-chain balance
+          setTimeout(async () => {
+            const liveBal = await this.fetchOnChainBalance(this.account.address);
+            if (liveBal !== null) {
+              this.account.balanceNim = liveBal;
+              this.saveSession();
+            }
+          }, 1500);
+
+          return { success: true, txHash };
+        } catch (err: any) {
+          console.error('Nimiq Pay transaction failed:', err);
+          throw err;
         }
-
-        const txHash = typeof res === 'string' ? res : (res as any)?.hash || (res as any)?.transactionHash || 'tx_confirmed';
-        // Refresh on-chain balance
-        const liveBal = await this.fetchOnChainBalance(this.account.address);
-        if (liveBal !== null) this.account.balanceNim = liveBal;
-        this.saveSession();
-        return { success: true, txHash };
-      } catch (err: any) {
-        console.error('Nimiq Pay transaction failed:', err);
-        throw err;
       }
     }
 

@@ -67,10 +67,10 @@ export const LevelCompleteModal: React.FC<LevelCompleteModalProps> = ({
 
   if (!open || !telemetry || !claimTicket) return null;
 
-  const isDemo = !wallet.isConnected || wallet.address.startsWith('NQDYN');
+  const isConnected = !!(wallet && wallet.isConnected && wallet.address && wallet.address.startsWith('NQ'));
 
   const handleClaim = async () => {
-    if (isDemo) {
+    if (!isConnected) {
       onConnectWallet();
       return;
     }
@@ -184,16 +184,16 @@ export const LevelCompleteModal: React.FC<LevelCompleteModalProps> = ({
                 ) : (
                   <>
                     <Wallet className="w-3.5 h-3.5 text-[#FFCA1A]" />
-                    <span>{isDemo ? 'Connect Real Wallet' : 'Claim NIM (Mainnet)'}</span>
+                    <span>{isConnected ? 'Claim NIM (Mainnet)' : 'Connect Wallet to Claim'}</span>
                   </>
                 )}
               </Button>
             )}
           </div>
 
-          {isDemo && !isClaimed && (
+          {!isConnected && !isClaimed && (
             <p className="text-[10px] text-muted-foreground mt-2 text-center">
-              Connect your real Nimiq address (e.g. Red Address NQ39...) to receive this live on Mainnet.
+              Connect your Nimiq wallet to receive this reward live on Mainnet.
             </p>
           )}
 

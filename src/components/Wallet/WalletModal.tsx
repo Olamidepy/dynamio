@@ -26,6 +26,8 @@ export const WalletModal: React.FC<WalletModalProps> = ({
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [addressError, setAddressError] = useState('');
 
+  const isMiniApp = wallet.isMiniApp || NimiqWalletService.getInstance().isMiniApp();
+
   const handleCopy = () => {
     navigator.clipboard.writeText(wallet.formattedAddress);
     setCopied(true);
@@ -34,8 +36,12 @@ export const WalletModal: React.FC<WalletModalProps> = ({
 
   const handleConnect = async () => {
     setIsConnecting(true);
+    setAddressError('');
     try {
       await NimiqWalletService.getInstance().connect();
+      setIsEditingAddress(false);
+    } catch (e: any) {
+      setAddressError(e.message || 'Could not connect wallet');
     } finally {
       setIsConnecting(false);
     }
@@ -183,16 +189,29 @@ export const WalletModal: React.FC<WalletModalProps> = ({
                   {addressError && <p className="text-[11px] text-red-500">{addressError}</p>}
 
                   <div className="pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleHubConnect}
-                      disabled={isConnecting}
-                      className="w-full text-xs font-semibold"
-                    >
-                      <Wallet className="w-3.5 h-3.5 mr-1.5 text-[#FFCA1A]" />
-                      <span>Choose Account in Nimiq Hub</span>
-                    </Button>
+                    {isMiniApp ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleConnect}
+                        disabled={isConnecting}
+                        className="w-full text-xs font-semibold"
+                      >
+                        <Wallet className="w-3.5 h-3.5 mr-1.5 text-[#FFCA1A]" />
+                        <span>Re-sync from Nimiq Pay</span>
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleHubConnect}
+                        disabled={isConnecting}
+                        className="w-full text-xs font-semibold"
+                      >
+                        <Wallet className="w-3.5 h-3.5 mr-1.5 text-[#FFCA1A]" />
+                        <span>Choose Account in Nimiq Hub</span>
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
@@ -217,18 +236,26 @@ export const WalletModal: React.FC<WalletModalProps> = ({
         ) : (
           <div className="space-y-4 py-2">
             <p className="text-xs text-muted-foreground">
-              Connect your Nimiq wallet to receive automated solo payouts and participate in live on-chain arena matches.
+              {isMiniApp
+                ? 'Connect your Nimiq Pay wallet directly to receive automated solo payouts and battle in live on-chain arena matches.'
+                : 'Connect your Nimiq wallet to receive automated solo payouts and participate in live on-chain arena matches.'}
             </p>
 
-            {/* Primary Action: Official Nimiq Hub Connect */}
+            {/* Primary Action: Direct In-App or Hub Connect */}
             <Button
               size="lg"
-              onClick={handleHubConnect}
+              onClick={handleConnect}
               disabled={isConnecting}
               className="w-full h-12 text-sm font-bold bg-[#FFCA1A] text-black hover:bg-[#FFCA1A]/90 flex items-center justify-center space-x-2 shadow-md transition-all active:scale-98"
             >
               <Wallet className="w-4 h-4 text-black" />
-              <span>Connect with Nimiq Hub</span>
+              <span>
+                {isConnecting
+                  ? 'Connecting...'
+                  : isMiniApp
+                  ? 'Connect Nimiq Pay App'
+                  : 'Connect with Nimiq Hub'}
+              </span>
             </Button>
 
             <div className="relative my-3">

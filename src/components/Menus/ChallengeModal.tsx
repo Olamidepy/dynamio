@@ -134,19 +134,27 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
     }
 
     const targetLvl = LEVELS.find((l) => l.id === selectedLevelId) || LEVELS[0];
+    const isMiniApp = wallet.isMiniApp || NimiqWalletService.getInstance().isMiniApp();
 
-    // If inside Nimiq Pay mini app with sufficient balance, execute directly
-    if (wallet.isMiniApp && wallet.balanceNim >= selectedEntryFee) {
+    // 1. Inside Nimiq Pay mini app: directly trigger native in-app payment sheet
+    if (isMiniApp) {
       try {
-        await NimiqWalletService.getInstance().sendTransaction(ESCROW_TREASURY_ADDRESS, selectedEntryFee);
-        finishCreateChallenge(targetLvl, selectedEntryFee);
+        setIsHubProcessing(true);
+        const res = await NimiqWalletService.getInstance().sendTransaction(ESCROW_TREASURY_ADDRESS, selectedEntryFee);
+        if (res.success) {
+          finishCreateChallenge(targetLvl, selectedEntryFee);
+          return;
+        }
+      } catch (err: any) {
+        console.warn('Nimiq Pay transaction error:', err);
+        alert(err.message || 'Payment was cancelled in Nimiq Pay');
         return;
-      } catch (err) {
-        console.warn('Mini-app payment not completed, showing checkout sheet', err);
+      } finally {
+        setIsHubProcessing(false);
       }
     }
 
-    // Open Nimiq Pay / Hub Checkout Sheet
+    // 2. Desktop browser: Open Checkout Sheet
     setPendingPayment({
       entryFee: selectedEntryFee,
       level: targetLvl,
@@ -161,19 +169,27 @@ export const ChallengeModal: React.FC<ChallengeModalProps> = ({
     }
 
     const targetLvl = LEVELS.find((l) => l.id === challenge.levelId) || LEVELS[0];
+    const isMiniApp = wallet.isMiniApp || NimiqWalletService.getInstance().isMiniApp();
 
-    // If inside Nimiq Pay mini app with sufficient balance, execute directly
-    if (wallet.isMiniApp && wallet.balanceNim >= challenge.entryFee) {
+    // 1. Inside Nimiq Pay mini app: directly trigger native in-app payment sheet
+    if (isMiniApp) {
       try {
-        await NimiqWalletService.getInstance().sendTransaction(ESCROW_TREASURY_ADDRESS, challenge.entryFee);
-        finishJoinChallenge(challenge);
+        setIsHubProcessing(true);
+        const res = await NimiqWalletService.getInstance().sendTransaction(ESCROW_TREASURY_ADDRESS, challenge.entryFee);
+        if (res.success) {
+          finishJoinChallenge(challenge);
+          return;
+        }
+      } catch (err: any) {
+        console.warn('Nimiq Pay transaction error:', err);
+        alert(err.message || 'Payment was cancelled in Nimiq Pay');
         return;
-      } catch (err) {
-        console.warn('Mini-app payment not completed, showing checkout sheet', err);
+      } finally {
+        setIsHubProcessing(false);
       }
     }
 
-    // Open Nimiq Pay / Hub Checkout Sheet
+    // 2. Desktop browser: Open Checkout Sheet
     setPendingPayment({
       entryFee: challenge.entryFee,
       level: targetLvl,

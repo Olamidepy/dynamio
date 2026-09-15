@@ -163,7 +163,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({ open, onOpen
               </p>
             </div>
             <button
-              onClick={() => NimiqWalletService.getInstance().connectViaHub().catch(() => {})}
+              onClick={() => NimiqWalletService.getInstance().connect().catch(() => {})}
               className="px-3 py-1.5 rounded-lg bg-[#FFCA1A] text-black font-bold text-xs shrink-0 hover:bg-[#FFCA1A]/90 transition-colors"
             >
               Connect Wallet
