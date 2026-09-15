@@ -34,6 +34,7 @@ export const LevelCompleteModal: React.FC<LevelCompleteModalProps> = ({
   const [isClaiming, setIsClaiming] = useState(false);
   const [isClaimed, setIsClaimed] = useState(false);
   const [claimTxHash, setClaimTxHash] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open || !telemetry) return;
