@@ -29,17 +29,20 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
   const [isClaiming, setIsClaiming] = useState(false);
   const [isClaimed, setIsClaimed] = useState(false);
   const [claimTxHash, setClaimTxHash] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
 
   const reward = telemetry ? RewardService.calculateRewards(telemetry, level) : { nimReward: 0, energyReward: 0 };
+  const isDemo = !wallet || !wallet.isConnected || wallet.address.startsWith('NQDYN');
 
   const handleClaim = async () => {
-    if (!wallet || !wallet.isConnected) {
+    if (isDemo) {
       if (onConnectWallet) onConnectWallet();
       return;
     }
     if (reward.nimReward <= 0 || isClaimed) return;
 
     setIsClaiming(true);
+    setClaimError(null);
     try {
       const res = await NimiqWalletService.getInstance().claimRewardTransaction(
         reward.nimReward,
@@ -49,8 +52,9 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
         setIsClaimed(true);
         setClaimTxHash(res.txHash || null);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error('GameOver claim error:', e);
+      setClaimError(e.message || 'Failed to claim on-chain reward');
     } finally {
       setIsClaiming(false);
     }
@@ -130,25 +134,37 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                 )}
               </div>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleClaim}
-                disabled={isClaiming}
-                className="w-full border-[#FFCA1A]/50 text-[#FFCA1A] hover:bg-[#FFCA1A]/10 text-xs py-2 flex items-center justify-center space-x-1.5"
-              >
-                {isClaiming ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FFCA1A]" />
-                    <span>Signing Claim...</span>
-                  </>
-                ) : (
-                  <>
-                    <Wallet className="w-3.5 h-3.5 text-[#FFCA1A]" />
-                    <span>Claim +{reward.nimReward.toFixed(2)} NIM Reward</span>
-                  </>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClaim}
+                  disabled={isClaiming}
+                  className="w-full border-[#FFCA1A]/50 text-[#FFCA1A] hover:bg-[#FFCA1A]/10 text-xs py-2 flex items-center justify-center space-x-1.5"
+                >
+                  {isClaiming ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FFCA1A]" />
+                      <span>Signing Claim...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Wallet className="w-3.5 h-3.5 text-[#FFCA1A]" />
+                      <span>{isDemo ? 'Connect Real Wallet to Claim' : `Claim +${reward.nimReward.toFixed(2)} NIM Reward`}</span>
+                    </>
+                  )}
+                </Button>
+                {isDemo && (
+                  <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
+                    Connect real Nimiq wallet to receive live Mainnet payouts.
+                  </p>
                 )}
-              </Button>
+                {claimError && (
+                  <p className="text-[11px] text-red-400 mt-1.5 text-center font-medium">
+                    {claimError}
+                  </p>
+                )}
+              </>
             )}
           </div>
         )}

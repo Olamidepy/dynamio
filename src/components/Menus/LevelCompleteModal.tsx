@@ -52,6 +52,7 @@ export const LevelCompleteModal: React.FC<LevelCompleteModalProps> = ({
     setIsClaiming(false);
     setIsClaimed(false);
     setClaimTxHash(null);
+    setClaimError(null);
 
     // Save progression
     StorageService.recordLevelCompletion(
@@ -65,14 +66,17 @@ export const LevelCompleteModal: React.FC<LevelCompleteModalProps> = ({
 
   if (!open || !telemetry || !claimTicket) return null;
 
+  const isDemo = !wallet.isConnected || wallet.address.startsWith('NQDYN');
+
   const handleClaim = async () => {
-    if (!wallet.isConnected) {
+    if (isDemo) {
       onConnectWallet();
       return;
     }
     if (!claimTicket) return;
 
     setIsClaiming(true);
+    setClaimError(null);
     try {
       const res = await NimiqWalletService.getInstance().claimRewardTransaction(
         claimTicket.nimReward,
@@ -82,8 +86,9 @@ export const LevelCompleteModal: React.FC<LevelCompleteModalProps> = ({
         setIsClaimed(true);
         setClaimTxHash(res.txHash || 'nim_tx_' + Date.now());
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.error('Reward claim error:', e);
+      setClaimError(e.message || 'Failed to claim on-chain reward');
     } finally {
       setIsClaiming(false);
     }
@@ -178,12 +183,24 @@ export const LevelCompleteModal: React.FC<LevelCompleteModalProps> = ({
                 ) : (
                   <>
                     <Wallet className="w-3.5 h-3.5 text-[#FFCA1A]" />
-                    <span>{wallet.isConnected ? 'Claim NIM' : 'Connect Wallet'}</span>
+                    <span>{isDemo ? 'Connect Real Wallet' : 'Claim NIM (Mainnet)'}</span>
                   </>
                 )}
               </Button>
             )}
           </div>
+
+          {isDemo && !isClaimed && (
+            <p className="text-[10px] text-muted-foreground mt-2 text-center">
+              Connect your real Nimiq address (e.g. Red Address NQ39...) to receive this live on Mainnet.
+            </p>
+          )}
+
+          {claimError && (
+            <p className="text-[11px] text-red-400 mt-2 text-center font-medium">
+              {claimError}
+            </p>
+          )}
 
           {claimTxHash && (
             <div className="mt-2.5 p-2 bg-background/60 rounded-lg border border-border/40 text-left">

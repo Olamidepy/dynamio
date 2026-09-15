@@ -192,9 +192,52 @@ export class NimiqWalletService {
   }
 
   /**
+   * Directly sets the active user's Nimiq address, queries on-chain balance & profile
+   */
+  public async setAddress(rawAddress: string): Promise<NimiqWalletAccount> {
+    const clean = rawAddress.replace(/\s+/g, '').toUpperCase();
+    if (!clean.startsWith('NQ')) {
+      throw new Error('Invalid Nimiq address format. Must start with NQ');
+    }
+    const liveBal = await this.fetchOnChainBalance(clean);
+    const profile = NimiqProfileService.getProfile(clean);
+
+    this.account = {
+      address: clean,
+      formattedAddress: this.formatAddress(clean),
+      label: profile.label,
+      moniker: profile.moniker,
+      colorName: profile.colorName,
+      avatarDataUrl: profile.avatarDataUrl,
+      balanceNim: liveBal !== null ? liveBal : 0,
+      isConnected: true,
+      isMiniApp: this.isMiniAppReady,
+    };
+
+    this.enrichWithProfile(clean);
+    this.saveSession();
+    return this.account;
+  }
+
+  /**
+   * Connects via official Nimiq Hub (chooseAddress)
+   */
+  public async connectViaHub(): Promise<NimiqWalletAccount> {
+    const win = window as any;
+    if (win.HubApi) {
+      const hub = new win.HubApi('https://hub.nimiq.com');
+      const res = await hub.chooseAddress({ appName: 'Dynamio' });
+      if (res && res.address) {
+        return this.setAddress(res.address);
+      }
+    }
+    throw new Error('Nimiq Hub is not loaded yet');
+  }
+
+  /**
    * Connects to Nimiq wallet.
    * If running inside Nimiq Pay, queries live accounts.
-   * If running standalone, creates a persistent Nimiq testnet/arcade wallet identity.
+   * If running in browser with Hub, triggers Nimiq Hub account chooser.
    */
   public async connect(): Promise<NimiqWalletAccount> {
     // 1. If Nimiq Pay mini app provider is ready, query live accounts
@@ -203,52 +246,40 @@ export class NimiqWalletService {
       if (liveAcc) return liveAcc;
     }
 
-    // 2. Browser check for legacy/webview provider
+    // 2. Try Nimiq Hub if available
     const win = window as any;
+    if (win.HubApi) {
+      try {
+        const hubAcc = await this.connectViaHub();
+        if (hubAcc) return hubAcc;
+      } catch (hubErr) {
+        console.warn('Hub selection cancelled or closed:', hubErr);
+      }
+    }
+
+    // 3. Browser check for legacy/webview provider
     if (win.nimiq && win.nimiq.requestAddress) {
       try {
         const res = await win.nimiq.requestAddress();
-        const profile = NimiqProfileService.getProfile(res.address);
-        this.account = {
-          address: res.address,
-          formattedAddress: this.formatAddress(res.address),
-          label: profile.label,
-          moniker: profile.moniker,
-          colorName: profile.colorName,
-          avatarDataUrl: profile.avatarDataUrl,
-          balanceNim: res.balance ? res.balance / 1e5 : 25.0,
-          isConnected: true,
-          isMiniApp: true,
-        };
-        this.enrichWithProfile(res.address);
-        this.saveSession();
-        return this.account;
+        if (res && res.address) {
+          return this.setAddress(res.address);
+        }
       } catch (err) {
         console.warn('Provider connect fallback:', err);
       }
     }
 
-    // 3. Standalone web arcade wallet
-    const existing = this.account.address ? this.account.address : null;
-    const demoHex = existing || ('NQ' + Math.floor(10 + Math.random() * 89) + ' ' +
-      'DYN4 M10X 8VMB J2P3 9G0E 7FL4');
-    const cleanDemo = demoHex.replace(/\s+/g, '');
-    const profile = NimiqProfileService.getProfile(cleanDemo);
-    
-    this.account = {
-      address: cleanDemo,
-      formattedAddress: this.formatAddress(demoHex),
-      label: profile.label,
-      moniker: profile.moniker,
-      colorName: profile.colorName,
-      avatarDataUrl: profile.avatarDataUrl,
-      balanceNim: this.account.balanceNim > 0 ? this.account.balanceNim : 25.5,
-      isConnected: true,
-      isMiniApp: false,
-    };
+    // 4. Standalone web arcade wallet (if user already had an address, refresh it)
+    if (this.account.address && this.account.address.startsWith('NQ')) {
+      const liveBal = await this.fetchOnChainBalance(this.account.address);
+      if (liveBal !== null) this.account.balanceNim = liveBal;
+      this.account.isConnected = true;
+      this.enrichWithProfile(this.account.address);
+      this.saveSession();
+      return this.account;
+    }
 
-    this.enrichWithProfile(cleanDemo);
-    this.saveSession();
+    // Otherwise prompt setAddress via modal
     return this.account;
   }
 
@@ -273,6 +304,10 @@ export class NimiqWalletService {
   ): Promise<{ success: boolean; txHash: string; rawHex?: string }> {
     if (!this.account.isConnected || !this.account.address) {
       throw new Error('Wallet not connected');
+    }
+
+    if (this.account.address.startsWith('NQDYN')) {
+      throw new Error('Please connect your real Nimiq wallet (e.g. Red Address NQ39... or NQ51...) to receive live Mainnet payouts.');
     }
 
     try {
@@ -307,7 +342,7 @@ export class NimiqWalletService {
           this.account.balanceNim = liveBal;
           this.saveSession();
         }
-      }, 1500);
+      }, 2000);
 
       // Optimistic balance increment while on-chain confirms
       this.account.balanceNim = Number((this.account.balanceNim + nimAmount).toFixed(4));
@@ -319,15 +354,8 @@ export class NimiqWalletService {
         rawHex: data.rawHex,
       };
     } catch (err: any) {
-      console.warn('Treasury claim API warning:', err);
-      // Fallback local credit if network is completely unreachable
-      this.account.balanceNim = Number((this.account.balanceNim + nimAmount).toFixed(4));
-      this.saveSession();
-
-      return {
-        success: true,
-        txHash: 'tx_' + Math.random().toString(36).substring(2, 12),
-      };
+      console.error('Treasury claim API error:', err);
+      throw err;
     }
   }
 
