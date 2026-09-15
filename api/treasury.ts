@@ -36,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       address,
       balanceNim: balance,
       network: NETWORK_ID === 42 ? 'mainnet' : 'testnet',
-      faucetUrl: 'https://faucet.pos.nimiq-testnet.com',
+      faucetUrl: NETWORK_ID === 42 ? `https://nimiq.watch/#${cleanAddress}` : 'https://faucet.pos.nimiq-testnet.com',
     });
   } catch (error: any) {
     return res.status(500).json({

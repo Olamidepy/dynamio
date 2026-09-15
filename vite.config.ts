@@ -38,7 +38,7 @@ function nimiqDevApiPlugin(): Plugin {
                 address,
                 balanceNim: balance,
                 network: NETWORK_ID === 42 ? 'mainnet' : 'testnet',
-                faucetUrl: 'https://faucet.pos.nimiq-testnet.com',
+                faucetUrl: NETWORK_ID === 42 ? `https://nimiq.watch/#${clean}` : 'https://faucet.pos.nimiq-testnet.com',
               })
             );
             return;
