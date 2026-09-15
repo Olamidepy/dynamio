@@ -7,8 +7,8 @@ const TREASURY_PRIVATE_KEY =
   process.env.NIMIQ_TREASURY_KEY ||
   '59e88e7246985d71045c0eb328e3c7f8208e99269999cd025d422db7dc35c1ae';
 
-// Network ID: 5 = TestAlbatross (Testnet), 42 = MainAlbatross (Mainnet)
-const NETWORK_ID = process.env.NIMIQ_NETWORK === 'main' ? 42 : 5;
+// Network ID: 42 = MainAlbatross (Mainnet), 5 = TestAlbatross (Testnet)
+const NETWORK_ID = process.env.NIMIQ_NETWORK === 'test' ? 5 : 42;
 
 interface ClaimRequestBody {
   recipient: string;

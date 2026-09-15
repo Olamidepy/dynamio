@@ -5,7 +5,7 @@ const TREASURY_PRIVATE_KEY =
   process.env.NIMIQ_TREASURY_KEY ||
   '59e88e7246985d71045c0eb328e3c7f8208e99269999cd025d422db7dc35c1ae';
 
-const NETWORK_ID = process.env.NIMIQ_NETWORK === 'main' ? 42 : 5;
+const NETWORK_ID = process.env.NIMIQ_NETWORK === 'test' ? 5 : 42;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');

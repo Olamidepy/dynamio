@@ -48,7 +48,7 @@ interface OpenChallenge {
   isPrivate: boolean;
 }
 
-const ESCROW_TREASURY_ADDRESS = 'NQ07 B790 1DP1 PPQK 2P0Y JXYP QKBT 1H95 P90S';
+const ESCROW_TREASURY_ADDRESS = 'NQ51 2GCM 2F0A P92H VN8H 9TL1 DUSP 1FSG CDDV';
 
 const RECENT_WINNERS = [
   { player: '@NimiqKing', amount: 30.0, level: 'Amber Spiral', time: '12m ago' },

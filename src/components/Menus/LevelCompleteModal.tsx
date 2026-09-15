@@ -193,7 +193,7 @@ export const LevelCompleteModal: React.FC<LevelCompleteModalProps> = ({
                   Received on Nimiq Network
                 </span>
                 <a
-                  href={`https://test.nimiq.watch/#${claimTxHash}`}
+                  href={`https://nimiq.watch/#${claimTxHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#FFCA1A] hover:underline flex items-center gap-0.5 font-medium"

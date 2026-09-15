@@ -114,7 +114,7 @@ export const GameOverModal: React.FC<GameOverModalProps> = ({
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="text-muted-foreground">Blockchain Receipt</span>
                       <a
-                        href={`https://test.nimiq.watch/#${claimTxHash}`}
+                        href={`https://nimiq.watch/#${claimTxHash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[#FFCA1A] hover:underline flex items-center gap-0.5 font-medium"
