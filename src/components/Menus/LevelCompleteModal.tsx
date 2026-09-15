@@ -71,9 +71,9 @@ export const LevelCompleteModal: React.FC<LevelCompleteModalProps> = ({
         playerAddress: wallet.formattedAddress || wallet.address,
         displayName: wallet.label,
         score: telemetry.score,
-        combo: telemetry.maxCombo,
+        combo: telemetry.highestCombo || 1,
         accuracy: Math.round(telemetry.accuracy),
-        timeSec: Math.round(telemetry.elapsedSeconds),
+        timeSec: Math.round((telemetry.durationMs || 30000) / 1000),
         isDaily: level.id === 1000,
       }).catch((err) => console.warn('Live leaderboard submission error:', err));
     }
