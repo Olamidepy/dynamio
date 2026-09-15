@@ -3,7 +3,7 @@ import * as Nimiq from '@nimiq/core';
 
 const TREASURY_PRIVATE_KEY =
   process.env.NIMIQ_TREASURY_KEY ||
-  '59e88e7246985d71045c0eb328e3c7f8208e99269999cd025d422db7dc35c1ae';
+  'be10f7a8d866d07a1a5643964c5f740a65a4cbb5f83d0ae48815afea9e30d729';
 
 const NETWORK_ID = process.env.NIMIQ_NETWORK === 'test' ? 5 : 42;
 

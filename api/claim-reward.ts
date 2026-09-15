@@ -2,10 +2,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import * as Nimiq from '@nimiq/core';
 
 // Dynamio Game Treasury Config
-// Default pre-funded testnet treasury address: NQ07 B790 1DP1 PPQK 2P0Y JXYP QKBT 1H95 P90S
+// Mainnet Treasury Address: NQ81 BDH4 RKPV XMG3 T082 J84R QRPT VJEJ FUET
 const TREASURY_PRIVATE_KEY =
   process.env.NIMIQ_TREASURY_KEY ||
-  '59e88e7246985d71045c0eb328e3c7f8208e99269999cd025d422db7dc35c1ae';
+  'be10f7a8d866d07a1a5643964c5f740a65a4cbb5f83d0ae48815afea9e30d729';
 
 // Network ID: 42 = MainAlbatross (Mainnet), 5 = TestAlbatross (Testnet)
 const NETWORK_ID = process.env.NIMIQ_NETWORK === 'test' ? 5 : 42;
