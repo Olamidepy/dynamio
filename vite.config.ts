@@ -65,9 +65,9 @@ function nimiqDevApiPlugin(): Plugin {
                 return;
               }
 
-              const clean = recipient.replace(/\s+/g, '').toUpperCase();
-              const nimAmount = Number(amount) || 1.0;
-              const lunas = BigInt(Math.round(nimAmount * 1e5));
+              const rawAmount = Number(amount) || 0.1;
+              const nimAmount = NETWORK_ID === 5 ? Math.min(rawAmount, 0.1) : rawAmount;
+              const lunas = BigInt(Math.max(1000, Math.round(nimAmount * 1e5)));
 
               const Nimiq = await import('@nimiq/core');
               const privateKey = Nimiq.PrivateKey.fromHex(TREASURY_PRIVATE_KEY);
